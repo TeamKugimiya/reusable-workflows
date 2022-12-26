@@ -24,13 +24,17 @@ fi
 
 environment_setup () {
   ## 宣告模組包名稱
-  echo "out_modpack_name=${ModPackName:?}" >> "$GITHUB_OUTPUT"
+  echo "modpack_name=${ModPackName:?}" >> "$GITHUB_OUTPUT"
 
   ## 宣告是否生成模組包的資源包補丁
-  echo "out_resourcepack_patch_generate=${Resourcepack_Patch_Generate:?}" >> "$GITHUB_OUTPUT"
+  echo "resourcepack_patch_generate=${Resourcepack_Patch_Generate:?}" >> "$GITHUB_OUTPUT"
 
   ## 宣告是否生成伺服器補丁
-  echo "out_server_patch_generate=${Server_Patch_Generate:?}" >> "$GITHUB_OUTPUT"
+  echo "server_patch_generate=${Server_Patch_Generate:?}" >> "$GITHUB_OUTPUT"
+
+  ## 宣告陣列
+  echo "patch_array=${Patch_Array:?}" >> "$GITHUB_OUTPUT"
+  echo "server_array=${Server_Array:?}" >> "$GITHUB_OUTPUT"
 }
 
 # 主要呼叫
