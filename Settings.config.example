@@ -1,0 +1,11 @@
+# 模組包名稱
+ModPackName=
+
+## 是否生成「模組中文化資源包」
+Resourcepack_Patch_Generate=false
+
+# 補丁複製陣列（哪些資料夾與檔案需要複製進補丁）
+Patch_Array=(config kubejs resourcepacks LICENSE)
+
+# 伺服器複製陣列
+Server_Array(config LICENSE)
