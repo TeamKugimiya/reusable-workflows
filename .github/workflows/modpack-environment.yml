@@ -12,6 +12,9 @@ on:
       server_patch_generate:
         description: "是否生成「伺服器補丁」"
         value: ${{ jobs.Environment-Setup.outputs.server_patch_generate }}
+      download_mmlp:
+        description: "是否下載「簡轉繁資源包」"
+        value: ${{ jobs.Environment-Setup.outputs.download_mmlp }}
       patch_array:
         description: "補丁陣列"
         value: ${{ jobs.Environment-Setup.outputs.patch_array }}
@@ -28,6 +31,7 @@ jobs:
       modpack_name: ${{ steps.env_setup.outputs.modpack_name }}
       resourcepack_patch_generate: ${{ steps.env_setup.outputs.resourcepack_patch_generate }}
       server_patch_generate: ${{ steps.env_setup.outputs.server_patch_generate }}
+      download_mmlp: ${{ steps.env_setup.outputs.download_mmlp }}
       patch_array: ${{ steps.env_setup.outputs.patch_array }}
       server_array: ${{ steps.env_setup.outputs.server_array }}
 

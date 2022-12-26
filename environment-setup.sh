@@ -32,6 +32,9 @@ environment_setup () {
   ## 宣告是否生成伺服器補丁
   echo "server_patch_generate=${Server_Patch_Generate:?}" >> "$GITHUB_OUTPUT"
 
+  ## 宣告是否下載簡轉繁資源包
+  echo "download_mmlp=${Download_MMLP:?}" >> "$GITHUB_OUTPUT"
+
   ## 宣告陣列
   echo "patch_array=${Patch_Array:?}" >> "$GITHUB_OUTPUT"
   echo "server_array=${Server_Array:?}" >> "$GITHUB_OUTPUT"

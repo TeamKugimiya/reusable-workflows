@@ -18,3 +18,6 @@ Resourcepack_Patch_Generate=false
 
 # 是否生成「伺服器補丁」
 Server_Patch_Generate=false
+
+# 是否自動下載「簡轉繁資源包」
+Download_MMLP=false
