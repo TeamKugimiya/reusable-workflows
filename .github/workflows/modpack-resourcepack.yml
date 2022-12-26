@@ -49,5 +49,5 @@ jobs:
       - name: 上傳資源包
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.modpack-name }}-Patches
+          name: ${{ inputs.modpack-name }}-Patches-Resourcepack
           path: "*.zip"
