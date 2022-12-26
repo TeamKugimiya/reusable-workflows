@@ -1,0 +1,40 @@
+name: 模組包 - 環境變數設定
+
+on:
+  workflow_call:
+    outputs:
+      Modpack_Name:
+        description: "模組包名稱"
+        value: ${{ jobs.Modpack_EnvSetup.outputs.modpack_name }}
+      Resourcepack_Patch_Generate:
+        description: "是否生成「模組包資源包補丁」"
+        value: ${{ jobs.Modpack_EnvSetup.outputs.resourcepack_patch_generate }}
+
+jobs:
+  Modpack_EnvSetup:
+    name: 環境變數設置
+    runs-on: ubuntu-latest
+
+    outputs:
+      modpack_name: ${{ steps.env_setup.outputs.out_modpack_name }}
+      resourcepack_patch_generate: ${{ steps.env_setup.outputs.out_resourcepack_patch_generate }}
+
+    steps:
+      - name: 查看專案
+        uses: actions/checkout@v3
+
+      - name: 下載 reusable workflow 到資料夾
+        uses: actions/checkout@v3
+        with:
+          repository: TeamKugimiya/reusable-workflows
+          path: reusable-workflow-repo
+
+      - name: DEBUG 檢查目前資料夾內有什麼
+        run: |
+          pwd
+          ls -alh
+          ls -alh reusable-workflow-repo
+
+      - name: 設定環境變數
+        id: env_setup
+        run: ./reusable-workflow-repo/environment-setup.sh
