@@ -5,13 +5,13 @@ on:
     outputs:
       Modpack_Name:
         description: "模組包名稱"
-        value: ${{ jobs.Modpack_EnvSetup.outputs.modpack_name }}
+        value: ${{ jobs.Environment-Setup.outputs.modpack_name }}
       Resourcepack_Patch_Generate:
         description: "是否生成「模組包資源包補丁」"
-        value: ${{ jobs.Modpack_EnvSetup.outputs.resourcepack_patch_generate }}
+        value: ${{ jobs.Environment-Setup.outputs.resourcepack_patch_generate }}
 
 jobs:
-  Modpack_EnvSetup:
+  Environment-Setup:
     name: 環境變數設置
     runs-on: ubuntu-latest
 
@@ -28,12 +28,6 @@ jobs:
         with:
           repository: TeamKugimiya/reusable-workflows
           path: reusable-workflow-repo
-
-      - name: DEBUG 檢查目前資料夾內有什麼
-        run: |
-          pwd
-          ls -alh
-          ls -alh reusable-workflow-repo
 
       - name: 設定環境變數
         id: env_setup
