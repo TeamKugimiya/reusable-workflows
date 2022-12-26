@@ -28,6 +28,9 @@ environment_setup () {
 
   ## 宣告是否生成模組包的資源包補丁
   echo "out_resourcepack_patch_generate=${Resourcepack_Patch_Generate:?}" >> "$GITHUB_OUTPUT"
+
+  ## 宣告是否生成伺服器補丁
+  echo "out_server_patch_generate=${Server_Patch_Generate:?}" >> "$GITHUB_OUTPUT"
 }
 
 # 主要呼叫

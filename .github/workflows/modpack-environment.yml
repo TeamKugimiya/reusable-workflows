@@ -9,6 +9,9 @@ on:
       resourcepack-patch-generate:
         description: "是否生成「模組包資源包補丁」"
         value: ${{ jobs.Environment-Setup.outputs.resourcepack_patch_generate }}
+      server_patch_generate:
+        description: "是否生成「伺服器補丁」"
+        value: ${{ jobs.Environment-Setup.outputs.server_patch_generate }}
 
 jobs:
   Environment-Setup:
@@ -18,6 +21,7 @@ jobs:
     outputs:
       modpack_name: ${{ steps.env_setup.outputs.out_modpack_name }}
       resourcepack_patch_generate: ${{ steps.env_setup.outputs.out_resourcepack_patch_generate }}
+      server_patch_generate: ${{ steps.env_setup.outputs.out_server_patch_generate }}
 
     steps:
       - name: 查看專案
