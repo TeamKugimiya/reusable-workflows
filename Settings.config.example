@@ -1,7 +1,7 @@
 # 模組包名稱
 ModPackName=
 
-## 是否生成「模組中文化資源包」
+# 是否生成「模組包資源包補丁」
 Resourcepack_Patch_Generate=false
 
 # 補丁複製陣列（哪些資料夾與檔案需要複製進補丁）

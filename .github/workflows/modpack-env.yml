@@ -3,16 +3,16 @@ name: 模組包 - 環境變數設定
 on:
   workflow_call:
     outputs:
-      Modpack_Name:
+      modpack-name:
         description: "模組包名稱"
         value: ${{ jobs.Environment-Setup.outputs.modpack_name }}
-      Resourcepack_Patch_Generate:
+      resourcepack-patch-generate:
         description: "是否生成「模組包資源包補丁」"
         value: ${{ jobs.Environment-Setup.outputs.resourcepack_patch_generate }}
 
 jobs:
   Environment-Setup:
-    name: 環境變數設置
+    name: 設置環境變數
     runs-on: ubuntu-latest
 
     outputs:
