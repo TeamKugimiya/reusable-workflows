@@ -44,10 +44,6 @@ environment_setup () {
   ## 宣告模組包名稱
   verify_var modpack_name "${Modpack_Name:?}"
 
-  ## 宣告陣列
-  verify_var client_patch_array "${Client_Patch_Array:?}"
-  verify_var server_patch_array "${Server_Patch_Array:?}"
-
   ## 宣告是否生成模組包的資源包補丁
   verify_var resourcepack_patch_generate "${Resourcepack_Patch_Generate:?}"
 

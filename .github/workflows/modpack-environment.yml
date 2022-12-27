@@ -6,12 +6,6 @@ on:
       modpack_name:
         description: "模組包名稱"
         value: ${{ jobs.Environment-Setup.outputs.modpack_name }}
-      client_patch_array:
-        description: "補丁陣列"
-        value: ${{ jobs.Environment-Setup.outputs.client_patch_array }}
-      server_patch_array:
-        description: "伺服器補丁陣列"
-        value: ${{ jobs.Environment-Setup.outputs.server_patch_array }}
       resourcepack_patch_generate:
         description: "是否生成「模組包資源包補丁」"
         value: ${{ jobs.Environment-Setup.outputs.resourcepack_patch_generate }}
@@ -29,8 +23,6 @@ jobs:
 
     outputs:
       modpack_name: ${{ steps.env_setup.outputs.modpack_name }}
-      client_patch_array: ${{ steps.env_setup.outputs.client_patch_array }}
-      server_patch_array: ${{ steps.env_setup.outputs.server_patch_array }}
       resourcepack_patch_generate: ${{ steps.env_setup.outputs.resourcepack_patch_generate }}
       server_patch_generate: ${{ steps.env_setup.outputs.server_patch_generate }}
       download_mmlp: ${{ steps.env_setup.outputs.download_mmlp }}
