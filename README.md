@@ -31,6 +31,8 @@
     uses: TeamKugimiya/reusable-workflows/.github/workflows/modpack-environment.yml@main
 ```
 
+### 製作資源包補丁
+
 - [`modpack-resourcepack.yml`](.github/workflows/modpack-resourcepack.yml)
 
 這個工作流程是從分支 ``resourcepack`` 中進行資源包優化，並輸出一個檔案名為 ``$模組包名稱$-Patches.zip`` 上傳到 artifact 中（名稱為 $模組包名稱$-Patches-Resourcepack）
@@ -51,6 +53,8 @@
       modpack-name:
       resourcepack-generate:
 ```
+
+### 製作補丁
 
 - [`modpack-patch.yml`](.github/workflows/modpack-patch.yml)
 
@@ -77,6 +81,8 @@
       modpack-resourcepack:
       modpack-mmlp:
 ```
+
+### 發布
 
 - [`modpack-release.yml`](.github/workflows/modpack-release.yml)
 
