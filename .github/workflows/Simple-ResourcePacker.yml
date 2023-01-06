@@ -75,7 +75,7 @@ jobs:
         if: ${{ inputs.generate_time_replacer }}
         run: |
           current_time=$(TZ='Asia/Taipei' date +'%Y 年 %m 月 %d 日 %H 點 %M 分')
-          sed -i 's/${{ inputs.generate_time_var }}/$current_time/g' ${{ inputs.release_body_path }}
+          sed -i "s/\${{ inputs.generate_time_var }}/$current_time/g" ${{ inputs.release_body_path }}
 
       - name: 製作資源包
         uses: ComunidadAylas/PackSquash-action@master
