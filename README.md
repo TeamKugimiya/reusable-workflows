@@ -25,9 +25,9 @@
 | release_tag | String | 發布的版本標籤，通常不需要動此數值，預設值為 ``latest`` | false |
 | release_update | Boolean | 自動更新現有的版本標籤，預設值為 ``true`` | false |
 | git_version_replacer | Boolean | 啟用自動轉換變數成該提交的 git hash | true |
-| git_version_var | String | 自動轉換的變數名，預設為``$GIT_VAR$`` | false |
+| git_version_var | String | 自動轉換的變數名，預設為``$GIT_VAR`` | false |
 | generate_time_replacer | Boolean | 啟用自動轉換變數成目前資源包生成時間，適合用於發布內容檔案 | true |
-| generate_time_var | String | 自動轉換的變數名，預設為``$DATE_TIME$`` | false |
+| generate_time_var | String | 自動轉換的變數名，預設為``$DATE_TIME`` | false |
 
 **用法**
 

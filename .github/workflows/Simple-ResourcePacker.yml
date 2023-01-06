@@ -42,8 +42,8 @@ on:
       git_version_var:
         required: false
         type: string
-        default: "$GIT_VAR$"
-        description: "自動轉換的變數名，預設為``$GIT_VAR$``"
+        default: "$GIT_VAR"
+        description: "自動轉換的變數名，預設為``$GIT_VAR``"
       generate_time_replacer:
         required: true
         type: boolean
@@ -51,8 +51,8 @@ on:
       generate_time_var:
         required: false
         type: string
-        default: "$DATE_TIME$"
-        description: "自動轉換的變數名，預設為``$DATE_TIME$``"
+        default: "$DATE_TIME"
+        description: "自動轉換的變數名，預設為``$DATE_TIME``"
       ###
 
 jobs:
@@ -109,4 +109,4 @@ jobs:
           tag: ${{ inputs.release_tag }}
           allowUpdates: ${{ inputs.release_update }}
           name: ${{ inputs.release_title_name }}
-          body_path: ${{ inputs.release_body_path }}
+          bodyFile: ${{ inputs.release_body_path }}
