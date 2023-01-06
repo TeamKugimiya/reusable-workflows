@@ -6,9 +6,47 @@
 
 # 可重複使用工作流程
 
-此專案專門收錄模組包的通用工作流程。
+本專案收錄一些通用與常用的工作流程
 
 ## 可用的工作流程
+
+### 簡易資源包發布
+
+- [`Simple-ResourcePacker.yml`](.github/workflows/Simple-ResourcePacker.yml)
+
+這個工作流程是專門針對於不需要發布版本號的資源包打包，它將會以 ``latest`` 的 tag 來持續更新資源包壓縮檔。
+
+| ID | 類型 | 簡介 | 必要 |
+| --- | --- | --- | --- |
+| resourcepack_file_name | String | 資源包檔案名稱，需使用英文，GitHub Release 吃不到中文字 | true |
+| release_title_name | String | 發布標題名稱 | true |
+| release_body_path | String | 發布內容路徑，預設路徑為 ``.github/configs/release_body.md`` | false |
+| force_include_files | String | 強制將指定檔案包入資源包，如果沒設定 PackSquash 將自動忽略非資源包相關的檔案，例如授權許可檔案 | false |
+| release_tag | String | 發布的版本標籤，通常不需要動此數值，預設值為 ``latest`` | false |
+| release_update | Boolean | 自動更新現有的版本標籤，預設值為 ``true`` | false |
+| git_version_replacer | Boolean | 啟用自動轉換變數成該提交的 git hash | true |
+| git_version_var | String | 自動轉換的變數名，預設為``$GIT_VAR$`` | false |
+| generate_time_replacer | Boolean | 啟用自動轉換變數成目前資源包生成時間，適合用於發布內容檔案 | true |
+| generate_time_var | String | 自動轉換的變數名，預設為``$DATE_TIME$`` | false |
+
+**用法**
+
+```yaml
+  Simple-Packer:
+    name: 簡易資源包發布
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/Simple-ResourcePacker.yml@main
+    with:
+      resourcepack_file_name:
+      release_title_name:
+      release_body_path:
+      force_include_files:
+      release_tag:
+      release_update:
+      git_version_replacer:
+      git_version_var:
+      generate_time_replacer:
+      generate_time_var:
+```
 
 ### 環境變數宣告
 

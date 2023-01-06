@@ -1,0 +1,112 @@
+name: 簡易資源包發布
+
+on:
+  workflow_call:
+    inputs:
+      ### Resourcepack Settings
+      resourcepack_file_name:
+        required: true
+        type: string
+        description: "資源包檔案名稱，需使用英文，GitHub Release 吃不到中文字"
+      ###
+      ### GitHub Release Settings
+      release_title_name:
+        required: true
+        type: string
+        description: "發布標題名稱"
+      release_body_path:
+        required: false
+        type: string
+        default: ".github/configs/release_body.md"
+        description: "發布內容路徑，預設路徑為 ``.github/configs/release_body.md``"
+      force_include_files:
+        required: false
+        type: string
+        description: "強制將指定檔案包入資源包，如果沒設定 PackSquash 將自動忽略非資源包相關的檔案，例如授權許可檔案"
+      release_tag:
+        required: false
+        type: string
+        default: "latest"
+        description: "發布的版本標籤，通常不需要動此數值，預設值為 ``latest``"
+      release_update:
+        required: false
+        type: boolean
+        default: true
+        description: "自動更新現有的版本標籤，預設值為 ``true``"
+      ###
+      ### Replacer Settings
+      git_version_replacer:
+        required: true
+        type: boolean
+        description: "啟用自動轉換變數成該提交的 git hash"
+      git_version_var:
+        required: false
+        type: string
+        default: "$GIT_VAR$"
+        description: "自動轉換的變數名，預設為``$GIT_VAR$``"
+      generate_time_replacer:
+        required: true
+        type: boolean
+        description: "啟用自動轉換變數成目前資源包生成時間，適合用於發布內容檔案"
+      generate_time_var:
+        required: false
+        type: string
+        default: "$DATE_TIME$"
+        description: "自動轉換的變數名，預設為``$DATE_TIME$``"
+      ###
+
+jobs:
+  Packer:
+    name: 打包資源包
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 查看專案
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 轉換變數成 Git 版本
+        if: ${{ inputs.git_version_replacer }}
+        run: |
+          sed -i 's/${{ inputs.git_version_var }}/'${GITHUB_SHA::7}'/1' pack.mcmeta
+      
+      - name: 轉換變數成目前資源包時間
+        if: ${{ inputs.generate_time_replacer }}
+        run: |
+          current_time=$(TZ='Asia/Taipei' date +'%Y 年 %m 月 %d 日 %H 點 %M 分')
+          sed -i 's/${{ inputs.generate_time_var }}/$current_time/g' ${{ inputs.release_body_path }}
+
+      - name: 製作資源包
+        uses: ComunidadAylas/PackSquash-action@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          force_include_files: ${{ inputs.force_include_files }}
+          never_store_squash_times: true
+          path: ./
+
+      - name: 下載壓縮檔
+        uses: actions/download-artifact@v2
+        with:
+          name: Optimized pack
+          path: ./
+
+      - name: 刪除生成成品
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            Optimized pack
+
+      - name: 重新命名壓縮檔
+        run: |
+          mv ./pack.zip ${{ inputs.resourcepack_file_name }}.zip
+
+      - name: 自動更新發布
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "${{ inputs.resourcepack_file_name }}.zip"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ inputs.release_tag }}
+          allowUpdates: ${{ inputs.release_update }}
+          name: ${{ inputs.release_title_name }}
+          body_path: ${{ inputs.release_body_path }}
