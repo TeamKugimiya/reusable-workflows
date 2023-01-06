@@ -49,9 +49,6 @@ environment_setup () {
 
   ## 宣告是否生成伺服器補丁
   verify_var server_patch_generate "${Server_Patch_Generate:?}"
-
-  ## 宣告是否下載簡轉繁資源包
-  verify_var download_mmlp "${Download_MMLP:?}"
 }
 
 # 主要呼叫

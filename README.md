@@ -65,7 +65,6 @@
 - modpack-name ``模組包名稱``
 - modpack-version ``版本``
 - modpack-resourcepack ``是否打包入補丁資源包``
-- modpack-mmlp ``是否下載簡轉繁資源包（過時）``
 
 **用法**
 
@@ -79,7 +78,6 @@
       modpack-name:
       modpack-version:
       modpack-resourcepack:
-      modpack-mmlp:
 ```
 
 ### 發布

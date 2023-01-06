@@ -40,7 +40,6 @@ jobs:
       modpack-name: ${{ needs.Environment-Setup.outputs.modpack_name }}
       modpack-version: ${{ github.event.inputs.tag }}
       modpack-resourcepack: ${{ needs.Environment-Setup.outputs.resourcepack_patch_generate }}
-      modpack-mmlp: ${{ needs.Environment-Setup.outputs.download_mmlp }}
 
   Release-It:
     name: 發布階段

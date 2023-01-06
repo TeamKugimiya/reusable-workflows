@@ -12,9 +12,6 @@ on:
       modpack-resourcepack:
         required: true
         type: string
-      modpack-mmlp:
-        required: true
-        type: string
 
 jobs:
   Patcher:
@@ -39,14 +36,6 @@ jobs:
         with:
           name: ${{ inputs.modpack-name }}-Patches-Resourcepack
           path: ./resourcepacks/
-
-      - name: 下載簡轉繁資源包
-        if: ${{ inputs.modpack-mmlp == 'true' }}
-        run: |
-          if [ ! -d "resourcepack" ]; then
-            mkdir resourcepack
-          fi
-          wget -q "https://github.com/TeamKugimiya/MMLP-CN-to-ZW/releases/download/latest/MMLP-CN-to-ZW.zip" -P resourcepacks/
 
       - name: 製作補丁
         run: ./reusable-workflow-repo/patch-maker.sh
