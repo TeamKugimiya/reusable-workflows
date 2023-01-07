@@ -92,7 +92,7 @@ jobs:
           path: ./
 
       - name: 刪除生成成品
-        uses: geekyeggo/delete-artifact@v1
+        uses: geekyeggo/delete-artifact@v2
         with:
           name: |
             Optimized pack
