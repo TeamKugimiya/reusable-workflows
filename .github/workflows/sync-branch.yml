@@ -39,7 +39,7 @@ jobs:
       - name: 複製資料夾內容
         run: |
           shopt -u dotglob
-          rm -v action-${{ inputs.branch_name }}/*
+          rm -rv action-${{ inputs.branch_name }}/*
           cp -r ${{ inputs.path }}/* action-${{ inputs.branch_name }}
 
       - name: 授權條款複製
