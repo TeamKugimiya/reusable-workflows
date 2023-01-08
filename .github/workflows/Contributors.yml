@@ -3,26 +3,39 @@ name: 貢獻者清單產生
 on:
   workflow_call:
     inputs:
+      placeholder:
+        required: false
+        type: string
+        default: "<!-- readme contributors -->"
+        description: "判斷字串，將判斷於它的空格過後一行來產生清單，預設為 ``<!-- readme contributors -->``"
+      pull_request:
+        required: false
+        type: string
+        description: "合併請求到哪個分支中，當設定時將會自動建立合併請求"
+      path:
+        required: false
+        type: string
+        default: "/README.md"
+        description: "讀我文件的路徑，預設為 ``/README.md``"
       commit_message:
         required: false
         type: string
         default: "docs(contributor): 自動更新 Readme 上貢獻者清單"
         description: "提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 上貢獻者清單``"
-      pr_title_message:
-        required: false
-        type: string
-        default: "docs(contributor): 自動更新 Readme 上貢獻者清單"
-        description: "建立合併請求的訊息，預設為 ``docs(contributor): 自動更新 Readme 上貢獻者清單``"
 
 jobs:
-  contrib-readme-job:
+  add-contributors:
     runs-on: ubuntu-latest
-    name: 自動貢獻清單產生
+    name: 增加與更新貢獻者
     steps:
-      - name: 貢獻者清單
-        uses: akhilmhdh/contributors-readme-action@master
+      - name: 查看專案
+        uses: actions/checkout@v3
+
+      - name: 貢獻者清單產生
+        uses: BobAnkh/add-contributors@master
         with:
-          commit_message: ${{ inputs.commit_message }}
-          pr_title_on_protected: ${{ inputs.pr_title_message }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONTRIBUTOR: ${{ inputs.placeholder }}
+          ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+          PATH: ${{ inputs.path }}
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
