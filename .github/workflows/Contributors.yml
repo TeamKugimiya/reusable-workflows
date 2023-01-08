@@ -8,6 +8,11 @@ on:
         type: string
         default: "<!-- readme contributors -->"
         description: "判斷字串，將判斷於它的空格過後一行來產生清單，預設為 ``<!-- readme contributors -->``"
+      branch:
+        required: false
+        type: string
+        default: "main"
+        description: "所要提交的分支位置，預設為 ``main``"
       pull_request:
         required: false
         type: string
@@ -36,6 +41,7 @@ jobs:
         with:
           CONTRIBUTOR: ${{ inputs.placeholder }}
           ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ inputs.branch }}
           PULL_REQUEST: ${{ inputs.pull_request }}
           PATH: ${{ inputs.path }}
           COMMIT_MESSAGE: ${{ inputs.commit_message }}

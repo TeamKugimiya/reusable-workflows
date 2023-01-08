@@ -57,6 +57,7 @@
 | ID | 類型 | 簡介 | 必要 |
 | --- | --- | --- | --- |
 | placeholder | string | 判斷字串，將判斷於它的空格過後一行來產生清單，預設為 ``<!-- readme contributors -->`` | false |
+| branch | string | 所要提交的分支位置，預設為 ``main`` | false |
 | pull_request | string | 合併請求到哪個分支中，當設定時將會自動建立合併請求 | false |
 | path | string | 讀我文件的路徑，預設為 ``/README.md`` | false |
 | commit_message | string | 提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 貢獻者清單`` | false |
