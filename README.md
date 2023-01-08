@@ -58,7 +58,7 @@
 | --- | --- | --- | --- |
 | placeholder | string | 判斷字串，將判斷於它的空格過後一行來產生清單，預設為 ``<!-- readme contributors -->`` | false |
 | pull_request | string | 合併請求到哪個分支中，當設定時將會自動建立合併請求 | false |
-| path | string | 讀我文件的路徑，預設為 ``/README.md`` | false | 
+| path | string | 讀我文件的路徑，預設為 ``/README.md`` | false |
 | commit_message | string | 提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 上貢獻者清單`` | false |
 
 **用法**
@@ -101,6 +101,7 @@
 
 - modpack-name ``模組包名稱``
 - resourcepack-generate ``是否啟用或停用資源包生成``
+- force_include_files  ``強制將指定檔案包入資源包，如果沒設定 PackSquash 將自動忽略非資源包相關的檔案，例如授權許可檔案``
 
 **用法**
 
