@@ -20,8 +20,8 @@ on:
       commit_message:
         required: false
         type: string
-        default: "docs(contributor): 自動更新 Readme 上貢獻者清單"
-        description: "提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 上貢獻者清單``"
+        default: "docs(contributor): 自動更新 Readme 貢獻者清單"
+        description: "提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 貢獻者清單``"
 
 jobs:
   add-contributors:
