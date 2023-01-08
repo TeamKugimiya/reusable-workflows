@@ -31,13 +31,13 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           never_store_squash_times: true
+          force_include_files: ${{ inputs.force_include_files }}
           path: ./
 
       - name: 下載優化資源包成品
         uses: actions/download-artifact@v3
         with:
           name: Optimized pack
-          force_include_files: ${{ inputs.force_include_files }}
           path: ./
 
       - name: 刪除優化資源包成品
