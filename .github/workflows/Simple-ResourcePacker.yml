@@ -47,7 +47,7 @@ on:
       generate_time_replacer:
         required: true
         type: boolean
-        description: "啟用自動轉換變數成目前資源包生成時間，適合用於發布內容檔案"
+        description: "啟用自動轉換變數成目前資源包產生時間，適合用於發布內容檔案"
       generate_time_var:
         required: false
         type: string
@@ -91,7 +91,7 @@ jobs:
           name: Optimized pack
           path: ./
 
-      - name: 刪除生成成品
+      - name: 刪除產生成品
         uses: geekyeggo/delete-artifact@v2
         with:
           name: |

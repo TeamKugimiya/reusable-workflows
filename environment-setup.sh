@@ -44,10 +44,10 @@ environment_setup () {
   ## 宣告模組包名稱
   verify_var modpack_name "${Modpack_Name:?}"
 
-  ## 宣告是否生成模組包的資源包補丁
+  ## 宣告是否產生模組包的資源包補丁
   verify_var resourcepack_patch_generate "${Resourcepack_Patch_Generate:?}"
 
-  ## 宣告是否生成伺服器補丁
+  ## 宣告是否產生伺服器補丁
   verify_var server_patch_generate "${Server_Patch_Generate:?}"
 }
 

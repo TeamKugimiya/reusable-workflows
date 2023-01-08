@@ -26,7 +26,7 @@
 | release_update | Boolean | 自動更新現有的版本標籤，預設值為 ``true`` | false |
 | git_version_replacer | Boolean | 啟用自動轉換變數成該提交的 git hash | true |
 | git_version_var | String | 自動轉換的變數名，預設為``$GIT_VAR`` | false |
-| generate_time_replacer | Boolean | 啟用自動轉換變數成目前資源包生成時間，適合用於發布內容檔案 | true |
+| generate_time_replacer | Boolean | 啟用自動轉換變數成目前資源包產生時間，適合用於發布內容檔案 | true |
 | generate_time_var | String | 自動轉換的變數名，預設為``$DATE_TIME`` | false |
 
 **用法**
@@ -93,8 +93,8 @@
 變數列表：
 
 - modpack_name ``模組包名稱``
-- resourcepack_patch_generate ``是否生成「模組包資源包補丁」``
-- server_patch_generate ``是否生成「伺服器補丁」``
+- resourcepack_patch_generate ``是否產生「模組包資源包補丁」``
+- server_patch_generate ``是否產生「伺服器補丁」``
 - download_mmlp ``是否下載「簡轉繁資源包」``
 
 **用法**
@@ -114,7 +114,7 @@
 選項列表：
 
 - modpack-name ``模組包名稱``
-- resourcepack-generate ``是否啟用或停用資源包生成``
+- resourcepack-generate ``是否啟用或停用資源包產生``
 - force_include_files  ``強制將指定檔案包入資源包，如果沒設定 PackSquash 將自動忽略非資源包相關的檔案，例如授權許可檔案``
 
 **用法**
@@ -133,7 +133,7 @@
 
 - [`modpack-patch.yml`](.github/workflows/modpack-patch.yml)
 
-這個工作流程是製作補丁，依照你的 Settings.config 來決定複製陣列、是否生成伺服器補丁與伺服器陣列等等
+這個工作流程是製作補丁，依照你的 Settings.config 來決定複製陣列、是否產生伺服器補丁與伺服器陣列等等
 
 選項列表：
 
