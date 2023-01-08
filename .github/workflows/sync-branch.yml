@@ -45,7 +45,7 @@ jobs:
       - name: 授權條款複製
         if: ${{ inputs.license_inculde }}
         run: |
-          cp ${{ inputs.license_path }} action-${{ inputs.branch_name }}
+          cp -r ${{ inputs.license_path }} action-${{ inputs.branch_name }}
       
       - name: Git SHA
         id: git_version
