@@ -48,6 +48,17 @@
       generate_time_var:
 ```
 
+### 貢獻者清單產生
+
+- [`Contributors.yml`](.github/workflows/Contributors.yml)
+
+這個工作流程專門產生貢獻者清單。
+
+| ID | 類型 | 簡介 | 必要 |
+| --- | --- | --- | --- |
+| commit_message | string | 提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 上貢獻者清單`` | false |
+| pr_title_message | string | 建立合併請求的訊息，預設為 ``docs(contributor): 自動更新 Readme 上貢獻者清單`` | false |
+
 ### 環境變數宣告
 
 - [`modpack-environment.yml`](.github/workflows/modpack-environment.yml)

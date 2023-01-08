@@ -1,0 +1,28 @@
+name: 貢獻者清單產生
+
+on:
+  workflow_call:
+    inputs:
+      commit_message:
+        required: false
+        type: string
+        default: "docs(contributor): 自動更新 Readme 上貢獻者清單"
+        description: "提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 上貢獻者清單``"
+      pr_title_message:
+        required: false
+        type: string
+        default: "docs(contributor): 自動更新 Readme 上貢獻者清單"
+        description: "建立合併請求的訊息，預設為 ``docs(contributor): 自動更新 Readme 上貢獻者清單``"
+
+jobs:
+  contrib-readme-job:
+    runs-on: ubuntu-latest
+    name: 自動貢獻清單產生
+    steps:
+      - name: 貢獻者清單
+        uses: akhilmhdh/contributors-readme-action@master
+        with:
+          commit_message: ${{ inputs.commit_message }}
+          pr_title_on_protected: ${{ inputs.pr_title_message }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
