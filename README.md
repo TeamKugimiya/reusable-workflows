@@ -71,6 +71,19 @@
 
 ```
 
+### 同步分支資料夾
+
+- [`sync-branch.yml`](.github/workflows/sync-branch.yml)
+
+這個工作流程是專門拿來同步資料夾到另一個分支中
+
+| ID | 類型 | 簡介 | 必要 |
+| --- | --- | --- | --- |
+| branch_name | String | 分支名稱 | true |
+| path | String | 資料夾路徑，所設定的資料夾內的所有資料將會被轉移到該分支下的根目錄 | true |
+| license_inculde | Boolean | 是否自動複製授權許可文件 | false |
+| license_path | String | 授權許可文件的路徑，預設為 ``LICENSE`` | false |
+
 ### 環境變數宣告
 
 - [`modpack-environment.yml`](.github/workflows/modpack-environment.yml)

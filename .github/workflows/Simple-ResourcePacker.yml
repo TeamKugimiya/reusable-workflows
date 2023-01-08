@@ -70,7 +70,7 @@ jobs:
         if: ${{ inputs.git_version_replacer }}
         run: |
           sed -i 's/${{ inputs.git_version_var }}/'${GITHUB_SHA::7}'/1' pack.mcmeta
-      
+
       - name: 轉換變數成目前資源包時間
         if: ${{ inputs.generate_time_replacer }}
         run: |
