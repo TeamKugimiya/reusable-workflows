@@ -15,7 +15,7 @@ on:
       version_placeholder:
         required: false
         type: string
-        default: "$GIT_VAR"
+        default: "$RELEASE_VERSION"
       version:
         required: false
         type: string
