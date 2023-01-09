@@ -12,6 +12,13 @@ on:
       force_include_files:
         required: false
         type: string
+      version_placeholder:
+        required: false
+        type: string
+        default: "$GIT_VAR"
+      version:
+        required: false
+        type: string
 
 jobs:
   ResourcePack:
@@ -25,6 +32,11 @@ jobs:
         with:
           ref: resourcepack
           fetch-depth: 0
+      
+      - name: 自動替換版本變數到發布版本號
+        if: ${{ inputs.version != '' }}
+        run: |
+          sed -i 's/${{ inputs.version_placeholder }}/'${{ inputs.version }}'/1' pack.mcmeta
 
       - name: 優化資源包
         uses: ComunidadAylas/PackSquash-action@master

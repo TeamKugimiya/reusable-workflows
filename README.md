@@ -116,6 +116,8 @@
 - modpack-name ``模組包名稱``
 - resourcepack-generate ``是否啟用或停用資源包產生``
 - force_include_files  ``強制將指定檔案包入資源包，如果沒設定 PackSquash 將自動忽略非資源包相關的檔案，例如授權許可檔案``
+- version_placeholder ``版本的替換符號，預設為 $GIT_VAR``
+- version ``該發布版本號碼，有給予數值時將會依照版本替換符號來更改 pack.mcmeta 的變數``
 
 **用法**
 
