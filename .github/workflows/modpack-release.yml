@@ -9,6 +9,9 @@ on:
       modpack-version:
         required: true
         type: string
+      modpack-official-version:
+        required: true
+        type: string
       modpack-per-release:
         required: true
         type: string
@@ -34,7 +37,7 @@ jobs:
       - name: 變數替換
         run: |
           sed -i 's/$ModPack_Name_VAR/${{ inputs.modpack-name }}/g' ${{ inputs.release-body-path }}
-          sed -i 's/$ModPack_Version_VAR/${{ inputs.modpack-version }}/g' ${{ inputs.release-body-path }}
+          sed -i 's/$ModPack_Version_VAR/${{ inputs.modpack-official-version }}/g' ${{ inputs.release-body-path }}
 
       - name: 下載補丁成品
         uses: actions/download-artifact@v3

@@ -56,11 +56,11 @@
 
 | ID | 類型 | 簡介 | 必要 |
 | --- | --- | --- | --- |
-| placeholder | string | 判斷字串，將判斷於它的空格過後一行來產生清單，預設為 ``<!-- readme contributors -->`` | false |
-| branch | string | 所要提交的分支位置，預設為 ``main`` | false |
-| pull_request | string | 合併請求到哪個分支中，當設定時將會自動建立合併請求 | false |
-| path | string | 讀我文件的路徑，預設為 ``/README.md`` | false |
-| commit_message | string | 提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 貢獻者清單`` | false |
+| placeholder | String | 判斷字串，將判斷於它的空格過後一行來產生清單，預設為 ``<!-- readme contributors -->`` | false |
+| branch | String | 所要提交的分支位置，預設為 ``main`` | false |
+| pull_request | String | 合併請求到哪個分支中，當設定時將會自動建立合併請求 | false |
+| path | String | 讀我文件的路徑，預設為 ``/README.md`` | false |
+| commit_message | String | 提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 貢獻者清單`` | false |
 
 **範例**
 
@@ -181,7 +181,8 @@
 | ID | 類型 | 簡介 | 必要 |
 | --- | --- | --- | --- |
 | modpack-name | String | 模組包名稱 | true |
-| modpack-version | String | 版本 | true |
+| modpack-version | String | 發布版本 | true |
+| modpack-official-version | String | 模組包官方版本 | true |
 | modpack-per-release | String | 預發布版 | true |
 | modpack-release-ignore | String | 忽略發布流程 | false |
 | release-body-path | String | 指定發布內容 markdown 檔案位置，預設路徑為 ``.github/configs/release_body.md`` | false |
