@@ -29,7 +29,7 @@
 | generate_time_replacer | Boolean | 啟用自動轉換變數成目前資源包產生時間，適合用於發布內容檔案 | true |
 | generate_time_var | String | 自動轉換的變數名，預設為``$DATE_TIME`` | false |
 
-**用法**
+**範例**
 
 ```yaml
   Simple-Packer:
@@ -62,7 +62,7 @@
 | path | string | 讀我文件的路徑，預設為 ``/README.md`` | false |
 | commit_message | string | 提交的訊息，預設為 ``docs(contributor): 自動更新 Readme 貢獻者清單`` | false |
 
-**用法**
+**範例**
 
 ```yaml
   Contributors:
@@ -84,20 +84,32 @@
 | license_inculde | Boolean | 是否自動複製授權許可文件 | false |
 | license_path | String | 授權許可文件的路徑，預設為 ``LICENSE`` | false |
 
+**範例**
+
+```yaml
+  sync-folder:
+    name: 同步資料
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/sync-branch.yml@main
+    with:
+      branch_name:
+      path:
+      license_inculde:
+      license_path:
+```
+
 ### 環境變數宣告
 
 - [`modpack-environment.yml`](.github/workflows/modpack-environment.yml)
 
 這個工作流程是作為宣告環境變數到 outputs 中，並可以透過使用 needs 來讓下一個新的 job 接收到變數。
 
-變數列表：
+| Output ID | 類型 | 簡介 |
+| --- | --- | --- |
+| modpack_name | String | 模組包的名稱 |
+| resourcepack_patch_generate | String | 是否產生「模組包資源包補丁」 |
+| server_patch_generate | String | 是否產生「伺服器補丁」 |
 
-- modpack_name ``模組包名稱``
-- resourcepack_patch_generate ``是否產生「模組包資源包補丁」``
-- server_patch_generate ``是否產生「伺服器補丁」``
-- download_mmlp ``是否下載「簡轉繁資源包」``
-
-**用法**
+**範例**
 
 ```yaml
   Environment-Setup:
@@ -111,15 +123,15 @@
 
 這個工作流程是從分支 ``resourcepack`` 中進行資源包優化，並輸出一個檔案名為 ``$模組包名稱$-Patches.zip`` 上傳到 artifact 中（名稱為 $模組包名稱$-Patches-Resourcepack）
 
-選項列表：
+| ID | 類型 | 簡介 | 必要 |
+| --- | --- | --- | --- |
+| modpack-name | String | 模組包的名稱 | true |
+| resourcepack-generate | String | 是否啟用或停用資源包產生 | true |
+| force_include_files | String | 強制將指定檔案包入資源包，如果沒設定 PackSquash 將自動忽略非資源包相關的檔案，例如授權許可檔案 | false |
+| version_placeholder | String | 版本的替換符號，預設為 ``$RELEASE_VERSION`` | false |
+| version | String | 該發布版本號碼，有給予數值時將會依照版本替換符號來更改 ``pack.mcmeta`` 的變數 | false |
 
-- modpack-name ``模組包名稱``
-- resourcepack-generate ``是否啟用或停用資源包產生``
-- force_include_files  ``強制將指定檔案包入資源包，如果沒設定 PackSquash 將自動忽略非資源包相關的檔案，例如授權許可檔案``
-- version_placeholder ``版本的替換符號，預設為 $RELEASE_VERSION``
-- version ``該發布版本號碼，有給予數值時將會依照版本替換符號來更改 pack.mcmeta 的變數``
-
-**用法**
+**範例**
 
 ```yaml
   Resourcepack-Maker:
@@ -129,6 +141,9 @@
     with:
       modpack-name:
       resourcepack-generate:
+      force_include_files:
+      version_placeholder:
+      version:
 ```
 
 ### 製作補丁
@@ -137,13 +152,13 @@
 
 這個工作流程是製作補丁，依照你的 Settings.config 來決定複製陣列、是否產生伺服器補丁與伺服器陣列等等
 
-選項列表：
+| ID | 類型 | 簡介 | 必要 |
+| --- | --- | --- | --- |
+| modpack-name | String | 模組包的名稱 | true |
+| modpack-version | String | 版本 | true |
+| modpack-resourcepack | String | 是否打包入補丁資源包 | false |
 
-- modpack-name ``模組包名稱``
-- modpack-version ``版本``
-- modpack-resourcepack ``是否打包入補丁資源包``
-
-**用法**
+**範例**
 
 ```yaml
   Patch-Maker:
@@ -163,15 +178,15 @@
 
 這個工作流程是負責發布，並替換發布內容中的變數與下載成品中的補丁作為發布內容
 
-選項列表：
+| ID | 類型 | 簡介 | 必要 |
+| --- | --- | --- | --- |
+| modpack-name | String | 模組包名稱 | true |
+| modpack-version | String | 版本 | true |
+| modpack-per-release | String | 預發布版 | true |
+| modpack-release-ignore | String | 忽略發布流程 | false |
+| release-body-path | String | 指定發布內容 markdown 檔案位置，預設路徑為 ``.github/configs/release_body.md`` | false |
 
-- modpack-name ``模組包名稱``
-- modpack-version ``版本``
-- modpack-per-release ``預發布版``
-- modpack-release-ignore ``忽略發布流程``
-- release-body-path ``可選：指定發布內容 markdown 檔案位置``
-
-**用法**
+**範例**
 
 ```yaml
   Release-It:
@@ -184,4 +199,5 @@
       modpack-version:
       modpack-per-release:
       modpack-release-ignore:
+      release-body-path:
 ```
