@@ -1,0 +1,84 @@
+name: 模組包 - 模組包資源包補丁
+
+on:
+  workflow_call:
+    inputs:
+      force_include_files:
+        required: false
+        type: string
+      version_placeholder:
+        required: false
+        type: string
+        default: "$RELEASE_VERSION"
+      version:
+        required: false
+        type: string
+    outputs:
+      modpack_patch_resourcepack_maker:
+        description: "是否生成資源包"
+        value: ${{ jobs.Modpack-Resourcepack.outputs.patch_resourcepack_maker }}
+
+jobs:
+  Modpack-Resourcepack:
+    name: 製作資源包補丁
+    runs-on: ubuntu-latest
+
+    outputs:
+        patch_resourcepack_maker: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker }}
+
+    steps:
+      - name: 查看專案
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+    
+      - name: 檢查資料夾存在
+        id: resourcepack-exist
+        run: |
+            if [ -d Patch-ResourcePack ]; then
+              echo "patch_resourcepack_maker=True" >> "$GITHUB_OUTPUT"
+              cp LICENSE Patch-ResourcePack/
+            else
+              echo "patch_resourcepack_maker=False" >> "$GITHUB_OUTPUT"
+            fi 
+
+      - name: 自動替換版本變數到發布版本號
+        if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker }}
+        run: |
+          sed -i 's/${{ inputs.version_placeholder }}/'${{ inputs.version }}'/1' pack.mcmeta
+
+      - name: 優化資源包
+        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        uses: ComunidadAylas/PackSquash-action@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          never_store_squash_times: true
+          force_include_files: ${{ inputs.force_include_files }}
+          path: Patch-ResourcePack/
+
+      - name: 下載優化資源包成品
+        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        uses: actions/download-artifact@v3
+        with:
+          name: Optimized pack
+          path: ./
+
+      - name: 刪除優化資源包成品
+        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            Optimized pack
+
+      - name: 重新命名資源包
+        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        run: |
+          modpack-name=$(grep -oP 'modpack-name:\s*\K.*' .github/configs/config.yml)
+          mv ./pack.zip ${modpack-name}-Patches.zip
+
+      - name: 上傳資源包
+        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: Patches-Resourcepack
+          path: "*.zip"

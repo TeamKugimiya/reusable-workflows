@@ -88,8 +88,9 @@ def chore_temporary_dir(temp_dir):
 
 def main(Debug):
     temp_dirs_data = temp_dirs()
-    yaml_dict = simple_loader("config.yml")
+    yaml_dict = simple_loader(".github/configs/config.yml")
     if Debug:
+        yaml_dict = simple_loader("config.yml")
         print(temp_dirs_data)
         print(yaml_dict)
 

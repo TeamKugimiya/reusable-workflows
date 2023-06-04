@@ -1,0 +1,52 @@
+name: 模組包 - 補丁製作
+
+on:
+  workflow_call:
+    inputs:
+      modpack-version:
+        required: true
+        type: string
+      modpack_patch_resourcepack_maker:
+        required: true
+        type: boolean
+
+jobs:
+  Modpack-Patcher-Maker:
+    name: 製作補丁
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 查看專案
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 下載 reusable workflow 到資料夾
+        uses: actions/checkout@v3
+        with:
+          repository: TeamKugimiya/reusable-workflows
+          path: reusable-workflow-repo
+
+      - name: 下載補丁資源包
+        if: ${{ inputs.modpack_patch_resourcepack_maker }}
+        uses: actions/download-artifact@v3
+        with:
+          name: Patches-Resourcepack
+          path: ./resourcepacks/
+
+      - name: 製作補丁
+        run: |
+          cd reusable-workflow-repo/Patch-Maker/
+          pip install pipenv
+          pipenv install 
+          pipenv shell
+          cd -
+          python reusable-workflow-repo/Patch-Maker/Main.py
+        env:
+          version: ${{ inputs.modpack-version }}
+
+      - name: 上傳補丁
+        uses: actions/upload-artifact@v3
+        with:
+          name: Patches-Modpack
+          path: "*.zip"
