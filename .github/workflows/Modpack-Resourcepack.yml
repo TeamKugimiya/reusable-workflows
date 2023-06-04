@@ -37,9 +37,11 @@ jobs:
         run: |
             if [ -d Patch-ResourcePack ]; then
               echo "patch_resourcepack_maker=True" >> "$GITHUB_OUTPUT"
+              echo "資源包補丁資料夾存在！"
               cp LICENSE Patch-ResourcePack/
             else
               echo "patch_resourcepack_maker=False" >> "$GITHUB_OUTPUT"
+              echo "資源包補丁資料夾不存在！"
             fi 
 
       - name: 自動替換版本變數到發布版本號
