@@ -20,6 +20,7 @@ on:
 
 jobs:
   Resourcepack-Maker:
+    name: 資源包階段
     uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Resourcepack.yml@main
     with:
       force_include_files: "LICENSE"
@@ -32,7 +33,7 @@ jobs:
     uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Patch-Maker.yml@main
     with:
       modpack-version: ${{ github.event.inputs.tag }}
-      modpack-resourcepack: ${{ needs.Resourcepack-Maker.outputs.modpack_patch_resourcepack_maker }}
+      modpack-patch_resourcepack_maker: ${{ needs.Resourcepack-Maker.outputs.modpack_patch_resourcepack_maker }}
 
   # Release-It:
   #   name: 發布階段

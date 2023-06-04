@@ -6,7 +6,7 @@ on:
       modpack-version:
         required: true
         type: string
-      modpack_patch_resourcepack_maker:
+      modpack-patch_resourcepack_maker:
         required: true
         type: boolean
 
@@ -28,7 +28,7 @@ jobs:
           path: reusable-workflow-repo
 
       - name: 下載補丁資源包
-        if: ${{ inputs.modpack_patch_resourcepack_maker }}
+        if: ${{ inputs.modpack-patch_resourcepack_maker }}
         uses: actions/download-artifact@v3
         with:
           name: Patches-Resourcepack
