@@ -35,7 +35,6 @@ jobs:
         with:
           repository: TeamKugimiya/reusable-workflows
           path: reusable-workflow-repo
-          ref: refactor # TEMP
 
       - name: 下載補丁資源包
         if: ${{ inputs.modpack-patch_resourcepack_maker == 'True' }}
