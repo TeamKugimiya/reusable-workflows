@@ -48,7 +48,7 @@ jobs:
         run: |
           mv reusable-workflow-repo/Patch-Maker/* .
           pipenv install 
-          python Main.py
+          pipenv run patcher
         env:
           version: ${{ inputs.modpack-version }}
 

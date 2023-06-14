@@ -10,3 +10,6 @@ pyaml = "*"
 
 [requires]
 python_version = "3.10"
+
+[scripts]
+patcher = "python Main.py"
