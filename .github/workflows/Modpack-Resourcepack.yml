@@ -45,12 +45,12 @@ jobs:
             fi 
 
       - name: 自動替換版本變數到發布版本號
-        if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker }}
+        if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
         run: |
           sed -i 's/${{ inputs.version_placeholder }}/'${{ inputs.version }}'/1' pack.mcmeta
 
       - name: 優化資源包
-        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
         uses: ComunidadAylas/PackSquash-action@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -59,27 +59,27 @@ jobs:
           path: Patch-ResourcePack/
 
       - name: 下載優化資源包成品
-        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
         uses: actions/download-artifact@v3
         with:
           name: Optimized pack
           path: ./
 
       - name: 刪除優化資源包成品
-        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
         uses: geekyeggo/delete-artifact@v2
         with:
           name: |
             Optimized pack
 
       - name: 重新命名資源包
-        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
         run: |
           modpack-name=$(grep -oP 'modpack-name:\s*\K.*' .github/configs/config.yml)
           mv ./pack.zip ${modpack-name}-Patches.zip
 
       - name: 上傳資源包
-        if: ${{ steps.resourcepack-exist.outputs.patch-resourcepack-maker }}
+        if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
         uses: actions/upload-artifact@v3
         with:
           name: Patches-Resourcepack
