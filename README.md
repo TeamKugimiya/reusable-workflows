@@ -71,62 +71,14 @@
 
 ```
 
-### 同步分支資料夾
-
-- [`sync-branch.yml`](.github/workflows/sync-branch.yml)
-
-這個工作流程是專門拿來同步資料夾到另一個分支中
-
-| ID | 類型 | 簡介 | 必要 |
-| --- | --- | --- | --- |
-| branch_name | String | 分支名稱 | true |
-| path | String | 資料夾路徑，所設定的資料夾內的所有資料將會被轉移到該分支下的根目錄 | true |
-| license_inculde | Boolean | 是否自動複製授權許可文件 | false |
-| license_path | String | 授權許可文件的路徑，預設為 ``LICENSE`` | false |
-
-**範例**
-
-```yaml
-  sync-folder:
-    name: 同步資料
-    uses: TeamKugimiya/reusable-workflows/.github/workflows/sync-branch.yml@main
-    with:
-      branch_name:
-      path:
-      license_inculde:
-      license_path:
-```
-
-### 環境變數宣告
-
-- [`modpack-environment.yml`](.github/workflows/modpack-environment.yml)
-
-這個工作流程是作為宣告環境變數到 outputs 中，並可以透過使用 needs 來讓下一個新的 job 接收到變數。
-
-| Output ID | 類型 | 簡介 |
-| --- | --- | --- |
-| modpack_name | String | 模組包的名稱 |
-| resourcepack_patch_generate | String | 是否產生「模組包資源包補丁」 |
-| server_patch_generate | String | 是否產生「伺服器補丁」 |
-
-**範例**
-
-```yaml
-  Environment-Setup:
-    name: 環境階段
-    uses: TeamKugimiya/reusable-workflows/.github/workflows/modpack-environment.yml@main
-```
-
 ### 製作資源包補丁
 
-- [`modpack-resourcepack.yml`](.github/workflows/modpack-resourcepack.yml)
+- [`Modpack-Resourcepack.yml`](.github/workflows/Modpack-Resourcepack.yml)
 
-這個工作流程是從分支 ``resourcepack`` 中進行資源包優化，並輸出一個檔案名為 ``$模組包名稱$-Patches.zip`` 上傳到 artifact 中（名稱為 $模組包名稱$-Patches-Resourcepack）
+這個工作流程會判斷是否資料夾名稱為 ``Patch-ResourcePack`` 內有 ``pack.mcmeta`` 檔案來進行生成補丁資源包，成品將會顯示為 ``Patches-Resourcepack``。
 
 | ID | 類型 | 簡介 | 必要 |
 | --- | --- | --- | --- |
-| modpack-name | String | 模組包的名稱 | true |
-| resourcepack-generate | String | 是否啟用或停用資源包產生 | true |
 | force_include_files | String | 強制將指定檔案包入資源包，如果沒設定 PackSquash 將自動忽略非資源包相關的檔案，例如授權許可檔案 | false |
 | version_placeholder | String | 版本的替換符號，預設為 ``$RELEASE_VERSION`` | false |
 | version | String | 該發布版本號碼，有給予數值時將會依照版本替換符號來更改 ``pack.mcmeta`` 的變數 | false |
@@ -136,51 +88,43 @@
 ```yaml
   Resourcepack-Maker:
     name: 資源包階段
-    needs: Environment-Setup
-    uses: TeamKugimiya/reusable-workflows/.github/workflows/modpack-resourcepack.yml@main
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Resourcepack.yml@main
     with:
-      modpack-name:
-      resourcepack-generate:
-      force_include_files:
-      version_placeholder:
-      version:
+      force_include_files: "LICENSE"
+      version: ${{ github.event.inputs.tag }}
 ```
 
 ### 製作補丁
 
-- [`modpack-patch.yml`](.github/workflows/modpack-patch.yml)
+- [`Modpack-Patch-Maker.yml`](.github/workflows/Modpack-Patch-Maker.yml)
 
-這個工作流程是製作補丁，依照你的 Settings.config 來決定複製陣列、是否產生伺服器補丁與伺服器陣列等等
+這個工作流程是製作用戶端、伺服器端補丁，依照你的 ``.github/configs/config.yml`` 內的設定來進行製作。
 
 | ID | 類型 | 簡介 | 必要 |
 | --- | --- | --- | --- |
-| modpack-name | String | 模組包的名稱 | true |
 | modpack-version | String | 版本 | true |
-| modpack-resourcepack | String | 是否打包入補丁資源包 | false |
+| modpack-patch_resourcepack_maker | String | 是否下載資源包補丁 | true |
 
 **範例**
 
 ```yaml
   Patch-Maker:
     name: 補丁階段
-    if: always()
-    needs: [ Environment-Setup, Resourcepack-Maker ]
-    uses: TeamKugimiya/reusable-workflows/.github/workflows/modpack-patch.yml@main
+    needs: [ Resourcepack-Maker ]
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Patch-Maker.yml@main
     with:
-      modpack-name:
-      modpack-version:
-      modpack-resourcepack:
+      modpack-version: ${{ github.event.inputs.tag }}
+      modpack-patch_resourcepack_maker: ${{ needs.Resourcepack-Maker.outputs.modpack_patch_resourcepack_maker }}
 ```
 
 ### 發布
 
-- [`modpack-release.yml`](.github/workflows/modpack-release.yml)
+- [`Modpack-Release.yml`](.github/workflows/Modpack-Release.yml)
 
-這個工作流程是負責發布，並替換發布內容中的變數與下載成品中的補丁作為發布內容
+這個工作流程是負責發布，並替換發布內容中的變數與下載成品中的補丁作為發布內容。
 
 | ID | 類型 | 簡介 | 必要 |
 | --- | --- | --- | --- |
-| modpack-name | String | 模組包名稱 | true |
 | modpack-version | String | 發布版本 | true |
 | modpack-official-version | String | 模組包官方版本 | true |
 | modpack-per-release | String | 預發布版 | true |
@@ -192,13 +136,11 @@
 ```yaml
   Release-It:
     name: 發布階段
-    if: always()
-    needs: [ Environment-Setup, Resourcepack-Maker, Patch-Maker ]
-    uses: TeamKugimiya/reusable-workflows/.github/workflows/modpack-release.yml@main
+    needs: [ Resourcepack-Maker, Patch-Maker ]
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Release.yml@main
     with:
-      modpack-name:
-      modpack-version:
-      modpack-per-release:
-      modpack-release-ignore:
-      release-body-path:
+      modpack-version: ${{ github.event.inputs.tag }}
+      modpack-official-version: ${{ github.event.inputs.modpack_version }}
+      modpack-per-release: ${{ github.event.inputs.per_release }}
+      modpack-release-ignore: ${{ github.event.inputs.no_release }}
 ```
