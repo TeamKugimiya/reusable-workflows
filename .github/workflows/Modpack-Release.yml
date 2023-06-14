@@ -51,9 +51,10 @@ jobs:
             Patches-Resourcepack
             Patches-Modpack
 
-      - name: 移動所有壓縮檔到主工作資料夾
+      - name: 製作檔案校對和
         run: |
           ls -alh
+          sha256sum *.zip > checksums.txt
 
       - name: 創建發布
         uses: softprops/action-gh-release@v1
@@ -61,5 +62,7 @@ jobs:
           name: ${{ steps.var.outputs.modpack_name }} 中文化翻譯 ${{ inputs.modpack-version }}
           tag_name: ${{ inputs.modpack-version }}
           prerelease: ${{ inputs.modpack-per-release }}
-          files: "*.zip"
+          files: |
+            *.zip
+            checksums.txt
           body_path: ${{ inputs.release-body-path }}
