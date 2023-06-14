@@ -36,7 +36,7 @@ jobs:
         run: |
           modpack_name=$(yq e .modpack-name .github/configs/config.yml)
           echo "modpack_name=$modpack_name" >> "$GITHUB_OUTPUT"
-          sed -i 's/$ModPack_Name_VAR/${modpack_name}/g' ${{ inputs.release-body-path }}
+          sed -i 's/$ModPack_Name_VAR/$modpack_name/g' ${{ inputs.release-body-path }}
           sed -i 's/$ModPack_Version_VAR/${{ inputs.modpack-official-version }}/g' ${{ inputs.release-body-path }}
 
       - name: 下載補丁成品
