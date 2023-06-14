@@ -46,11 +46,9 @@ jobs:
 
       - name: 製作補丁
         run: |
-          cd reusable-workflow-repo/Patch-Maker/
+          mv reusable-workflow-repo/Patch-Maker/* .
           pipenv install 
-          pipenv shell
-          cd -
-          python reusable-workflow-repo/Patch-Maker/Main.py
+          python Main.py
         env:
           version: ${{ inputs.modpack-version }}
 
