@@ -1,0 +1,20 @@
+name: 自動發布資源包更新流程
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  Simple-Packer:
+    name: 簡易資源包發布
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/Simple-ResourcePacker.yml@main
+    with:
+      resourcepack_file_name:
+      release_title_name:
+      # release_body_path: 
+      force_include_files: "LICENSE"
+      # release_tag:
+      # release_update:
+      git_version_replacer: true
+      # git_version_var:
+      generate_time_replacer: true
+      # generate_time_var:
