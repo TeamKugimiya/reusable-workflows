@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-        patch_resourcepack_maker: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker }}
+      patch_resourcepack_maker: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker }}
 
     steps:
       - name: 查看專案
