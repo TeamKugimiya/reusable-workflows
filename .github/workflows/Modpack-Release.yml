@@ -3,9 +3,6 @@ name: 模組包 - 發布
 on:
   workflow_call:
     inputs:
-      modpack-name:
-        required: true
-        type: string
       modpack-version:
         required: true
         type: string
@@ -35,19 +32,24 @@ jobs:
         uses: actions/checkout@v3
 
       - name: 變數替換
+        id: var
         run: |
-          sed -i 's/$ModPack_Name_VAR/${{ inputs.modpack-name }}/g' ${{ inputs.release-body-path }}
+          modpack-name=$(grep -oP 'modpack-name:\s*\K.*' .github/configs/config.yml)
+          echo "modpack_name=${modpack-name}" >> "$GITHUB_OUTPUT"
+          sed -i 's/$ModPack_Name_VAR/${modpack-name}/g' ${{ inputs.release-body-path }}
           sed -i 's/$ModPack_Version_VAR/${{ inputs.modpack-official-version }}/g' ${{ inputs.release-body-path }}
 
       - name: 下載補丁成品
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.modpack-name }}-Patches
+          name: Patches-Modpack
 
       - name: 清理所有工作流程成品
         uses: geekyeggo/delete-artifact@v2
         with:
-          name: ${{ inputs.modpack-name }}-*
+          name: |
+            Patches-Resourcepack
+            Patches-Modpack
 
       - name: 移動所有壓縮檔到主工作資料夾
         run: |
@@ -56,7 +58,7 @@ jobs:
       - name: 創建發布
         uses: softprops/action-gh-release@v1
         with:
-          name: ${{ inputs.modpack-name }} 中文化翻譯 ${{ inputs.modpack-version }}
+          name: ${{ steps.var.outputs.modpack_name }} 中文化翻譯 ${{ inputs.modpack-version }}
           tag_name: ${{ inputs.modpack-version }}
           prerelease: ${{ inputs.modpack-per-release }}
           files: "*.zip"
