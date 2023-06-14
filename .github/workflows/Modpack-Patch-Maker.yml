@@ -26,6 +26,7 @@ jobs:
         with:
           repository: TeamKugimiya/reusable-workflows
           path: reusable-workflow-repo
+          ref: refactor # TEMP
 
       - name: 下載補丁資源包
         if: ${{ inputs.modpack-patch_resourcepack_maker == 'True' }}
@@ -36,6 +37,7 @@ jobs:
 
       - name: 製作補丁
         run: |
+          ls -alh
           cd reusable-workflow-repo/Patch-Maker/
           pip install pipenv
           pipenv install 
