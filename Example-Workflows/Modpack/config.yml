@@ -1,0 +1,19 @@
+# 模組包名稱
+modpack-name: Example
+
+# 模組包專案設定（自動更新通知）
+# 如果 Project ID 為空將會停止檢查
+modpack-project-id: 829758
+modpack-file-id: 4533570 
+
+# 用戶端 - 複製陣列
+client-patch:
+  - "config"
+  - "kubejs"
+  - "resourcepacks"
+  - "LICENSE"
+
+# 伺服器 - 複製陣列（為空將會停止產生伺服器版）
+server-patch:
+  - "config"
+  - "LICENSE"

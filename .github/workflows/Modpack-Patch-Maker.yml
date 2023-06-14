@@ -1,20 +1,17 @@
-name: 模組包 - 補丁
+name: 模組包 - 補丁製作
 
 on:
   workflow_call:
     inputs:
-      modpack-name:
-        required: true
-        type: string
       modpack-version:
         required: true
         type: string
-      modpack-resourcepack:
+      modpack-patch_resourcepack_maker:
         required: true
         type: string
 
 jobs:
-  Patcher:
+  Modpack-Patcher-Maker:
     name: 製作補丁
     runs-on: ubuntu-latest
 
@@ -24,6 +21,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 設定 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: 安裝 pipenv
+        run: |
+          python -m pip install --upgrade pipenv wheel
+
       - name: 下載 reusable workflow 到資料夾
         uses: actions/checkout@v3
         with:
@@ -31,19 +37,22 @@ jobs:
           path: reusable-workflow-repo
 
       - name: 下載補丁資源包
-        if: ${{ inputs.modpack-resourcepack == 'true' }}
+        if: ${{ inputs.modpack-patch_resourcepack_maker == 'True' }}
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.modpack-name }}-Patches-Resourcepack
+          name: Patches-Resourcepack
           path: ./resourcepacks/
 
       - name: 製作補丁
-        run: ./reusable-workflow-repo/patch-maker.sh
+        run: |
+          mv reusable-workflow-repo/Patch-Maker/* .
+          pipenv install 
+          pipenv run patcher
         env:
           version: ${{ inputs.modpack-version }}
 
       - name: 上傳補丁
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.modpack-name }}-Patches
+          name: Patches-Modpack
           path: "*.zip"
