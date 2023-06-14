@@ -75,8 +75,8 @@ jobs:
       - name: 重新命名資源包
         if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
         run: |
-          modpack-name=$(grep -oP 'modpack-name:\s*\K.*' .github/configs/config.yml)
-          mv ./pack.zip ${modpack-name}-Patches.zip
+          modpack_name=$(yq e .modpack-name .github/configs/config.yml)
+          mv ./pack.zip ${modpack_name}-Patches.zip
 
       - name: 上傳資源包
         if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
