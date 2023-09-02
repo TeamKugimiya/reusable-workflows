@@ -61,7 +61,7 @@ jobs:
 
       - name: 壓縮多版本
         run: |
-          zip -r MultiVersions/ ${{ inputs.resourcepack_file_name }}.zip
+          zip -r ${{ inputs.resourcepack_file_name }}.zip MultiVersions/
 
       - name: 自動更新發布
         uses: ncipollo/release-action@v1
