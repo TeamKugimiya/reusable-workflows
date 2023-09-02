@@ -1,0 +1,74 @@
+name: 簡易多版本發佈
+
+on:
+  workflow_call:
+    inputs:
+      ### Resourcepack Settings
+      resourcepack_file_name:
+        required: true
+        type: string
+        description: "資源包檔案名稱，需使用英文，GitHub Release 吃不到中文字"
+      ###
+      ### GitHub Release Settings
+      release_title_name:
+        required: true
+        type: string
+        description: "發布標題名稱"
+      release_body_path:
+        required: false
+        type: string
+        default: ".github/configs/release_body.md"
+        description: "發布內容路徑，預設路徑為 ``.github/configs/release_body.md``"
+      release_tag:
+        required: false
+        type: string
+        default: "latest"
+        description: "發布的版本標籤，通常不需要動此數值，預設值為 ``latest``"
+      release_update:
+        required: false
+        type: boolean
+        default: true
+        description: "自動更新現有的版本標籤，預設值為 ``true``"
+      ###
+      ### Replacer Settings
+      generate_time_replacer:
+        required: true
+        type: boolean
+        description: "啟用自動轉換變數成目前資源包產生時間，適合用於發布內容檔案"
+      generate_time_var:
+        required: false
+        type: string
+        default: "$DATE_TIME"
+        description: "自動轉換的變數名，預設為``$DATE_TIME``"
+      ###
+
+jobs:
+  Packer:
+    name: 打包多版本
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 查看專案
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 轉換變數成目前時間
+        if: ${{ inputs.generate_time_replacer }}
+        run: |
+          current_time=$(TZ='Asia/Taipei' date +'%Y 年 %m 月 %d 日 %H 點 %M 分')
+          sed -i "s/\${{ inputs.generate_time_var }}/$current_time/g" ${{ inputs.release_body_path }}
+
+      - name: 壓縮多版本
+        run: |
+          zip -r MultiVersions/ ${{ inputs.resourcepack_file_name }}.zip
+
+      - name: 自動更新發布
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "${{ inputs.resourcepack_file_name }}.zip"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ inputs.release_tag }}
+          allowUpdates: ${{ inputs.release_update }}
+          name: ${{ inputs.release_title_name }}
+          bodyFile: ${{ inputs.release_body_path }}
