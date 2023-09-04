@@ -34,7 +34,7 @@ jobs:
     name: 增加與更新貢獻者
     steps:
       - name: 查看專案
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 貢獻者清單產生
         uses: BobAnkh/add-contributors@master
