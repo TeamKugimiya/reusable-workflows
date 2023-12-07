@@ -78,7 +78,7 @@ jobs:
           sed -i "s/\${{ inputs.generate_time_var }}/$current_time/g" ${{ inputs.release_body_path }}
 
       - name: 製作資源包
-        uses: ComunidadAylas/PackSquash-action@v3
+        uses: ComunidadAylas/PackSquash-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           force_include_files: ${{ inputs.force_include_files }}

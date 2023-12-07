@@ -51,7 +51,7 @@ jobs:
 
       - name: 優化資源包
         if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
-        uses: ComunidadAylas/PackSquash-action@v3
+        uses: ComunidadAylas/PackSquash-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           never_store_squash_times: true
