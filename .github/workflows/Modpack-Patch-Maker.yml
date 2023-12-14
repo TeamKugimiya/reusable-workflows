@@ -52,7 +52,7 @@ jobs:
           version: ${{ inputs.modpack-version }}
 
       - name: 上傳補丁
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Patches-Modpack
           path: "*.zip"

@@ -80,7 +80,7 @@ jobs:
 
       - name: 上傳資源包
         if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Patches-Resourcepack
           path: "*.zip"
