@@ -38,7 +38,7 @@ jobs:
 
       - name: 下載補丁資源包
         if: ${{ inputs.modpack-patch_resourcepack_maker == 'True' }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: Patches-Resourcepack
           path: ./resourcepacks/
@@ -52,7 +52,7 @@ jobs:
           version: ${{ inputs.modpack-version }}
 
       - name: 上傳補丁
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Patches-Modpack
           path: "*.zip"
