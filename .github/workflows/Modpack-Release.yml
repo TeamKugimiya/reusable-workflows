@@ -57,7 +57,7 @@ jobs:
           sha256sum *.zip > checksums.txt
 
       - name: 創建發布
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: ${{ steps.var.outputs.modpack_name }} 中文化翻譯 ${{ inputs.modpack-version }}
           tag_name: ${{ inputs.modpack-version }}
