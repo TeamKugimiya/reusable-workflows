@@ -45,7 +45,7 @@ jobs:
           name: Patches-Modpack
 
       - name: 清理所有工作流程成品
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: |
             Patches-Resourcepack
