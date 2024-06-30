@@ -80,10 +80,10 @@ jobs:
       - name: 製作資源包
         uses: ComunidadAylas/PackSquash-action@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          force_include_files: ${{ inputs.force_include_files }}
-          never_store_squash_times: true
-          path: ./
+          packsquash_version: latest-unstable
+          options: |
+            pack_directory = '.'
+            never_store_squash_times = true
 
       - name: 下載壓縮檔
         uses: actions/download-artifact@v4
