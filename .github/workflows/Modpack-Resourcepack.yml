@@ -67,7 +67,7 @@ jobs:
 
       - name: 刪除優化資源包成品
         if: ${{ steps.resourcepack-exist.outputs.patch_resourcepack_maker == 'True' }}
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: |
             Optimized pack
