@@ -81,6 +81,8 @@ jobs:
         uses: ComunidadAylas/PackSquash-action@v4
         with:
           packsquash_version: latest-unstable
+          force_include_files: |
+           ${{ inputs.force_include_files }}
           options: |
             pack_directory = '.'
             never_store_squash_times = true
