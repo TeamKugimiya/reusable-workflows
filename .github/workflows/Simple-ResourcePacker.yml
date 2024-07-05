@@ -77,15 +77,25 @@ jobs:
           current_time=$(TZ='Asia/Taipei' date +'%Y 年 %m 月 %d 日 %H 點 %M 分')
           sed -i "s/\${{ inputs.generate_time_var }}/$current_time/g" ${{ inputs.release_body_path }}
 
+      - name: 產生 Force Include 資料
+        id: force_include
+        run: |
+          {
+            echo 'data<<EOF'
+            python <(wget https://raw.githubusercontent.com/TeamKugimiya/reusable-workflows/main/scripts/force_include_generate.py -q -O-)
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+        env:
+          force_include_files: ${{ inputs.force_include_files }}
+
       - name: 製作資源包
         uses: ComunidadAylas/PackSquash-action@v4
         with:
           packsquash_version: latest-unstable
-          force_include_files: |
-           ${{ inputs.force_include_files }}
           options: |
             pack_directory = '.'
             never_store_squash_times = true
+            ${{ steps.force_include.outputs.data }}
 
       - name: 下載壓縮檔
         uses: actions/download-artifact@v4
