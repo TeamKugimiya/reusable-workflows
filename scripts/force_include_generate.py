@@ -12,6 +12,5 @@ def main():
     if force_include_files_str:
         include_list = force_include_files_str.split(',')
         generate_include_list(include_list)
-        print(include_list)
 
 main()
