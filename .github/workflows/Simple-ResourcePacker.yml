@@ -80,6 +80,7 @@ jobs:
       - name: 產生 Force Include 資料
         id: force_include
         run: |
+          echo ${{inputs.force_include_files}}
           {
             echo 'data<<EOF'
             python <(wget https://raw.githubusercontent.com/TeamKugimiya/reusable-workflows/main/scripts/force_include_generate.py -q -O-)
