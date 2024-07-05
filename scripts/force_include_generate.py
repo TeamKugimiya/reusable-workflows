@@ -9,7 +9,7 @@ def generate_include_list(include_list):
 def main():
     force_include_files_str = os.environ.get("force_include_files")
 
-    if force_include_files_str:
+    if force_include_files_str is not None:
         include_list = force_include_files_str.split(',')
         generate_include_list(include_list)
 
