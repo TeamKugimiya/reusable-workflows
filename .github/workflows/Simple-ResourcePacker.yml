@@ -87,7 +87,8 @@ jobs:
             echo EOF
           } >> "$GITHUB_OUTPUT"
         env:
-          force_include_files: ${{ inputs.force_include_files }}
+          force_include_files: |
+            ${{ inputs.force_include_files }}
 
       - name: 製作資源包
         uses: ComunidadAylas/PackSquash-action@v4
