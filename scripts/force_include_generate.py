@@ -1,10 +1,9 @@
 import os
 
 def generate_include_list(include_list):
-    with open(os.environ["GITHUB_OUTPUT"], "w") as env:
-        for i in include_list:
-            env.write(f"['{i}']\n")
-            env.write("force_include = true")
+    for i in include_list:
+        print(f"['{i}']\n")
+        print("force_include = true")
 
 def main():
     force_include_files_str = os.environ.get("force_include_files")
