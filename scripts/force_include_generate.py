@@ -12,7 +12,7 @@ def generate_include_list(include_list):
         print("force_include = true")
 
 def main():
-    include_list = os.environ.get("force_include_files")
+    include_list = list(os.environ.get("force_include_files"))
 
     if include_list is not None:
         generate_include_list(include_list)
