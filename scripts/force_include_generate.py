@@ -12,7 +12,6 @@ def main():
     if force_include_files_str:
         include_list = force_include_files_str.split(',')
         generate_include_list(include_list)
-    else:
-        print("Environment variable 'force_include_files' is empty or not set!")
+        print(include_list)
 
 main()
