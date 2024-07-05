@@ -6,17 +6,13 @@ def generate_include_list(include_list):
             env.write(f"['{i}']\n")
             env.write("force_include = true")
 
-    print("Force Inlucde Files:")
-    for i in include_list:
-        print(f"['{i}']")
-        print("force_include = true")
-
 def main():
-    include_list = list(os.environ.get("force_include_files"))
+    force_include_files_str = os.environ.get("force_include_files")
 
-    if include_list is not None:
+    if force_include_files_str:
+        include_list = force_include_files_str.split(',')
         generate_include_list(include_list)
     else:
-        print("Array is Empty!")
+        print("Environment variable 'force_include_files' is empty or not set!")
 
 main()
