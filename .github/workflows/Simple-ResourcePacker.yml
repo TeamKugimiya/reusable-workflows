@@ -88,10 +88,6 @@ jobs:
         env:
           force_include_files: ${{ inputs.force_include_files }}
 
-      - name: Test
-        run: |
-          echo ${{ steps.force_include.outputs.data }}
-
       - name: 製作資源包
         uses: ComunidadAylas/PackSquash-action@v4
         with:
