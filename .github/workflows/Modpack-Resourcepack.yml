@@ -66,7 +66,7 @@ jobs:
         with:
           packsquash_version: latest-unstable
           options: |
-            pack_directory = '.'
+            pack_directory = 'Patch-ResourcePack/'
             never_store_squash_times = true
             ${{ steps.force_include.outputs.data }}
 
