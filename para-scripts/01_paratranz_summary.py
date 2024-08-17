@@ -28,11 +28,11 @@ def paratranz_generate_summary(artifact_data: dict):
 
     with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary_env:
         summary_env.write("# 🚧 Artifact Info\n")
-        summary_env.write(f"- ID: {artifact_data['id']}\n")
-        summary_env.write(f"- Created At: {artifact_data['createdAt']}\n")
-        summary_env.write(f"- Total Strings: {artifact_data['total']}\n")
-        summary_env.write(f"- Translated Strings: {artifact_data['translated']}\n")
-        summary_env.write(f"- Disputed Strings: {artifact_data['disputed']}")
+        summary_env.write(f"- ID: ``{artifact_data['id']}``\n")
+        summary_env.write(f"- Created At: ``{artifact_data['createdAt']}``\n")
+        summary_env.write(f"- Total Strings: ``{artifact_data['total']}``\n")
+        summary_env.write(f"- Translated Strings: ``{artifact_data['translated']}``\n")
+        summary_env.write(f"- Disputed Strings: ``{artifact_data['disputed']}``")
         summary_env.close()
 
 def main():
