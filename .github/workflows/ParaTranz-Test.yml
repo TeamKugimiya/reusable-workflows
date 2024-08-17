@@ -124,11 +124,78 @@ jobs:
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/01_paratranz_summary.py
 
-  para_packer:
-    name: ParaTranz - Pack ParaModsTranslation 
+  para_paraify:
+    name: ParaTranz - Paraify
     runs-on: ubuntu-latest
     needs: [ para_cache ]
     if: ${{ needs.para_cache.outputs.cache_hit != 'true' }}
+    env:
+      LOGURU_LEVEL: "INFO"
+    steps:
+      ### Checkout Main and Reusable Workflows ###
+      - name: Checkout Repository - Main
+        uses: actions/checkout@v4
+
+      - name: Checkout Repository - Reusable Workflows
+        uses: actions/checkout@v4
+        with:
+          repository: TeamKugimiya/reusable-workflows
+          ref: ci/para
+          path: .github/reusable-workflows
+
+      ### Setup script dependencies ###
+      - name: Setup - Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Setup - Poetry
+        uses: abatilo/actions-poetry@v3
+
+      - name: Setup - Poetry Setup
+        run: |
+          cp .github/reusable-workflows/pyproject.toml .
+          cp .github/reusable-workflows/poetry.lock .
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+
+      - name: Cache - Poetry
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+
+      - name: Setup - Poetry install dependencies
+        run: |
+          poetry install
+
+      ### Start Script ###
+      - name: ParaTranz - Download Artifact
+        env:
+          PROJECT_ID: ${{ inputs.paratranz_project_id }}
+          API_TOKEN: ${{ secrets.paratranz_token }}
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/02_paratranz_download.py
+
+      - name: ParaTranz - Extract Artifact
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/03_paratranz_extract.py
+
+      - name: ParaTranz - Minecraft Language JSON & Structure
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/04_paratranz_language.py
+
+      # - name: ParaTranz - Date Fixer
+      #   env:
+      #     PROJECT_ID: ${{ inputs.paratranz_project_id }}
+      #     API_TOKEN: ${{ secrets.paratranz_token }}
+      #   run: |
+      #     poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/03_paratranz_extract.py
+
+  para_packer:
+    name: ParaTranz - Pack ParaModsTranslation 
+    runs-on: ubuntu-latest
+    needs: [ para_paraify ]
     env:
       LOGURU_LEVEL: "INFO"
     steps:

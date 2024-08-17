@@ -4,6 +4,7 @@ import json
 import requests
 from loguru import logger
 
+# ParaTranz ENVs
 API_URL = "https://paratranz.cn/api"
 API_TOKEN = os.environ.get("API_TOKEN")
 PROJECT_ID = os.environ.get("PROJECT_ID")
