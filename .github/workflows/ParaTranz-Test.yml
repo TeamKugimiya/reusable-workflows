@@ -1,0 +1,65 @@
+name: "Testing ParaTranz Workflow"
+
+on:
+  workflow_call: {}
+
+jobs:
+  parainfo:
+    name: ParaInfo
+    runs-on: ubuntu-latest
+
+    steps:
+      ### Checkout Main and Reusable Workflows ###
+      - name: Checkout Repository - Main
+        uses: actions/checkout@v4
+
+      - name: Checkout Repository - Reusable Workflows
+        uses: actions/checkout@v4
+        with:
+          repository: TeamKugimiya/reusable-workflows
+          ref: ci/para
+          path: .github/reusable-workflows
+
+      ### Setup script dependencies ###
+      - name: Setup - Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Setup - Poetry
+        uses: abatilo/actions-poetry@v3
+
+      - name: Setup - Poetry Setup
+        run: |
+          cp .github/reusable-workflows/pyproject.toml .
+          cp .github/reusable-workflows/poetry.lock .
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+
+      - name: Cache - Poetry
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+
+      - name: Setup - Poetry install dependencies
+        run: |
+          poetry install
+
+      ### Setup Cache ###
+      - name: Cache - ParaTranz
+        uses: actions/cache@v4
+        with:
+          path: .cache/paratranz_cache.txt
+          key: paratranz_cache-${{ hashFiles('.cache/paratranz_cache.txt') }}
+
+      ### Start Script ###
+      - name: ParaTranz - GetInfo
+        id: para_getinfo
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/00_para_info.py
+      
+      - name: ParaTranz - Download
+        if: ${{ steps.para_getinfo.outputs.ARITFACT_SAME == 'false' }}
+        run: |
+          echo Hello World!
