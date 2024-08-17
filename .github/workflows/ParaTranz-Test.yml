@@ -53,23 +53,22 @@ jobs:
         run: |
           poetry install
 
-      ### Setup Cache ###
+      ### Start Script ###
+      - name: ParaTranz - Cache
+        env:
+          PROJECT_ID: ${{ inputs.paratranz_project_id }}
+          API_TOKEN: ${{ secrets.paratranz_token }}
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/00_paratranz_cache.py
+
       - name: Cache - ParaTranz
+        id: para_cache
         uses: actions/cache@v4
         with:
           path: .cache/paratranz_cache.txt
           key: paratranz_cache-${{ hashFiles('.cache/paratranz_cache.txt') }}
 
-      ### Start Script ###
-      - name: ParaTranz - GetInfo
-        id: para_getinfo
-        env:
-          PROJECT_ID: ${{ inputs.paratranz_project_id }}
-          API_TOKEN: ${{ secrets.paratranz_token }}
-        run: |
-          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/00_para_info.py
-      
       - name: ParaTranz - Download
-        if: ${{ steps.para_getinfo.outputs.ARITFACT_SAME == 'false' }}
+        if: ${{ steps.para_cache.outputs.cache-hit == 'false' }}
         run: |
           echo Hello World!
