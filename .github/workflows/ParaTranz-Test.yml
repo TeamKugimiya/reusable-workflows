@@ -69,6 +69,6 @@ jobs:
           key: paratranz_cache-${{ hashFiles('.cache/paratranz_cache.txt') }}
 
       - name: ParaTranz - Download
-        if: ${{ steps.para_cache.outputs.cache-hit == 'false' }}
+        if: ${{ steps.para_cache.outputs.cache-hit != 'true' }}
         run: |
           echo Hello World!
