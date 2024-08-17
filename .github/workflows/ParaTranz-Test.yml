@@ -1,7 +1,14 @@
 name: "Testing ParaTranz Workflow"
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      paratranz_project_id:
+        required: true
+        type: string
+    secrets:
+      paratranz_token:
+        required: true
 
 jobs:
   parainfo:
@@ -56,6 +63,9 @@ jobs:
       ### Start Script ###
       - name: ParaTranz - GetInfo
         id: para_getinfo
+        env:
+          PROJECT_ID: ${{ inputs.paratranz_project_id }}
+          API_TOKEN: ${{ secrets.paratranz_token }}
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/00_para_info.py
       
