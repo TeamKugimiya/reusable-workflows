@@ -185,12 +185,17 @@ jobs:
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/04_paratranz_language.py
 
-      # - name: ParaTranz - Date Fixer
-      #   env:
-      #     PROJECT_ID: ${{ inputs.paratranz_project_id }}
-      #     API_TOKEN: ${{ secrets.paratranz_token }}
-      #   run: |
-      #     poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/03_paratranz_extract.py
+      - name: ParaTranz - Date Fixer
+        env:
+          PROJECT_ID: ${{ inputs.paratranz_project_id }}
+          API_TOKEN: ${{ secrets.paratranz_token }}
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/05_paratranz_datefixer.py
+
+      - name: ParaTranz - Debug
+        run: |
+          ls -alh
+          ls -alh .workdir/MultiVersions/Forge/main
 
   para_packer:
     name: ParaTranz - Pack ParaModsTranslation 
