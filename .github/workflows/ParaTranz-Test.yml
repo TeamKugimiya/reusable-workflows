@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       cache_hit: ${{ steps.para_cache.outputs.cache-hit }}
+    env:
+      LOGURU_LEVEL: "INFO"
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
@@ -74,6 +76,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ para_cache ]
     if: ${{ needs.para_cache.outputs.cache_hit != 'true' }}
+    env:
+      LOGURU_LEVEL: "INFO"
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
@@ -113,12 +117,20 @@ jobs:
           poetry install
 
       ### Start Script ###
+      - name: ParaTranz - Generate Summary
+        env:
+          PROJECT_ID: ${{ inputs.paratranz_project_id }}
+          API_TOKEN: ${{ secrets.paratranz_token }}
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/01_paratranz_summary.py
 
   para_packer:
     name: ParaTranz - Pack ParaModsTranslation 
     runs-on: ubuntu-latest
     needs: [ para_cache ]
     if: ${{ needs.para_cache.outputs.cache_hit != 'true' }}
+    env:
+      LOGURU_LEVEL: "INFO"
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
