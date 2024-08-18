@@ -364,8 +364,19 @@ jobs:
           name: ParaTranslateSource
           path: MultiVersions
 
+      - name: Packer - Generate Mcmeta
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/07_github_pack_meta.py
+
       ### Current we only have main folder, don't have multiversion
       - name: Packer Tempoary - Move files
         run: |
-          mkdir assets
-          mv MultiVersions/Forge/main
+          mv MultiVersions/Forge/main/* pack/assets/
+
+      - name: Packer - PackSquash
+        uses: ComunidadAylas/PackSquash-action@v4
+        with:
+          packsquash_version: latest-unstable
+          artifact_name: ParaTranslationPack-${{ matrix.mc_version }}
+          options: |
+            pack_directory = 'pack'

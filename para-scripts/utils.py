@@ -13,7 +13,7 @@ API_URL = "https://paratranz.cn/api"
 def setup_dir(path: Path, path_name: str):
     if not path.exists():
         logger.info(f"Create {path_name} folder")
-        path.mkdir()
+        path.mkdir(parents=True)
     else:
         logger.info(f"{path_name} folder exists!")
 
