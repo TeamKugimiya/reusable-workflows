@@ -44,7 +44,15 @@ jobs:
           cp .github/reusable-workflows/pyproject.toml .
           cp .github/reusable-workflows/poetry.lock .
 
+      - name: Setup - Cache Poetry Installation
+        id: cached-poetry
+        uses: actions/cache@v4
+        with:
+          path: ~/.local
+          key: poetry-0
+
       - name: Setup - Poetry Install
+        if: ${{ steps.cached-poetry.outputs.cache-hit != 'true' }}
         uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
