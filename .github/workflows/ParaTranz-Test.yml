@@ -230,18 +230,19 @@ jobs:
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/04_paratranz_language.py
 
+      - name: Cache - Files Hash
+        uses: actions/cache@v4
+        with:
+          path: .cache/paratranz_files_cache.json
+          key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_files_cache.json') }}
+          restore-keys: paratranz_files_cache-
+
       - name: ParaTranz - Date Fixer
         env:
           PROJECT_ID: ${{ inputs.paratranz_project_id }}
           API_TOKEN: ${{ secrets.paratranz_token }}
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/05_paratranz_datefixer.py
-
-      - name: Cache - Files Hash
-        uses: actions/cache@v4
-        with:
-          path: .cache/paratranz_files_cache.json
-          key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_files_cache.json') }}
 
       - name: GitHub - Upload Translate Artifact
         uses: actions/upload-artifact@v4
