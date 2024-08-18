@@ -192,10 +192,12 @@ jobs:
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/05_paratranz_datefixer.py
 
-      - name: ParaTranz - Debug
-        run: |
-          ls -alh
-          ls -alh .workdir/MultiVersions/Forge/main
+      - name: GitHub - Upload Translate Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ParaTranslateSource
+          path: .workdir/MultiVersions
+          compression-level: 9
 
   para_packer:
     name: ParaTranz - Pack ParaModsTranslation 
@@ -242,3 +244,11 @@ jobs:
           poetry install
 
       ### Start Script ###
+      - name: GitHub - Download Translate Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ParaTranslateSource
+
+      - name: DEBUG - List files
+        run: |
+          ls -alh
