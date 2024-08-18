@@ -27,10 +27,10 @@ def current_date() -> str:
 def generate_mcmeta(pack_format: int, supported_format_min: int, supported_format_max: int) -> json:
     pack_mcmeta = {
         "pack": {
-            "pack_format": pack_format,
+            "pack_format": int(pack_format),
             "supported_formats": {
-                "min_inclusive": supported_format_min,
-                "max_inclusive": supported_format_max
+                "min_inclusive": int(supported_format_min),
+                "max_inclusive": int(supported_format_max)
             },
             "description": [
                 DESCRIPTION[0] + current_date(),
