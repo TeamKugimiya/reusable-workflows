@@ -253,3 +253,4 @@ jobs:
       - name: DEBUG - List files
         run: |
           ls -alh
+          ls -alh MultiVersions
