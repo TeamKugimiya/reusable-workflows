@@ -14,7 +14,7 @@ env:
   python_version: "3.12"
   reusable_workflows_ref: ci/para
   poetry_installation_cache_key: poetry_cache_01
-  LOGURU_LEVEL: "INFO"
+  LOGURU_LEVEL: "DEBUG"
 
 jobs:
   para_cache:
@@ -397,6 +397,12 @@ jobs:
       - name: Packer Tempoary - Move files
         run: |
           mv MultiVersions/Forge/main/* pack/assets/
+
+      - name: Packer - DEBUG Check State
+        run: |
+          stat pack/assets/advancednetherite/lang/zh_tw.json
+          stat pack/assets/magnumtorch/lang/zh_tw.json
+          stat pack/assets/toms_storage/lang/zh_tw.json
 
       - name: Packer - PackSquash
         uses: ComunidadAylas/PackSquash-action@v4
