@@ -13,6 +13,7 @@ on:
 env:
   python_version: "3.12"
   reusable_workflows_ref: ci/para
+  poetry_installation_cache_key: poetry_cache_01
   LOGURU_LEVEL: "INFO"
 
 jobs:
@@ -44,15 +45,15 @@ jobs:
           cp .github/reusable-workflows/pyproject.toml .
           cp .github/reusable-workflows/poetry.lock .
 
-      - name: Setup - Cache Poetry Installation
-        id: cached-poetry
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
         uses: actions/cache@v4
         with:
           path: ~/.local
-          key: poetry-0
+          key: ${{ env.poetry_installation_cache_key }}
 
       - name: Setup - Poetry Install
-        if: ${{ steps.cached-poetry.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
         uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
@@ -60,16 +61,18 @@ jobs:
           virtualenvs-path: .venv
           installer-parallel: true
 
-      - name: Cache - Poetry
-        id: poetry_cache
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
         uses: actions/cache@v4
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
 
       - name: Setup - Poetry install dependencies
-        if: ${{ steps.poetry_cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
         run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
           poetry install --no-interaction
 
       ### Start Script ###
@@ -115,15 +118,15 @@ jobs:
           cp .github/reusable-workflows/pyproject.toml .
           cp .github/reusable-workflows/poetry.lock .
 
-      - name: Setup - Cache Poetry Installation
-        id: cached-poetry
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
         uses: actions/cache@v4
         with:
           path: ~/.local
-          key: poetry-0
+          key: ${{ env.poetry_installation_cache_key }}
 
       - name: Setup - Poetry Install
-        if: ${{ steps.cached-poetry.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
         uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
@@ -131,16 +134,18 @@ jobs:
           virtualenvs-path: .venv
           installer-parallel: true
 
-      - name: Cache - Poetry
-        id: poetry_cache
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
         uses: actions/cache@v4
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
 
       - name: Setup - Poetry install dependencies
-        if: ${{ steps.poetry_cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
         run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
           poetry install --no-interaction
 
       ### Start Script ###
@@ -179,15 +184,15 @@ jobs:
           cp .github/reusable-workflows/pyproject.toml .
           cp .github/reusable-workflows/poetry.lock .
 
-      - name: Setup - Cache Poetry Installation
-        id: cached-poetry
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
         uses: actions/cache@v4
         with:
           path: ~/.local
-          key: poetry-0
+          key: ${{ env.poetry_installation_cache_key }}
 
       - name: Setup - Poetry Install
-        if: ${{ steps.cached-poetry.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
         uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
@@ -195,16 +200,18 @@ jobs:
           virtualenvs-path: .venv
           installer-parallel: true
 
-      - name: Cache - Poetry
-        id: poetry_cache
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
         uses: actions/cache@v4
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
 
       - name: Setup - Poetry install dependencies
-        if: ${{ steps.poetry_cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
         run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
           poetry install --no-interaction
 
       ### Start Script ###
@@ -266,15 +273,15 @@ jobs:
           cp .github/reusable-workflows/pyproject.toml .
           cp .github/reusable-workflows/poetry.lock .
 
-      - name: Setup - Cache Poetry Installation
-        id: cached-poetry
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
         uses: actions/cache@v4
         with:
           path: ~/.local
-          key: poetry-0
+          key: ${{ env.poetry_installation_cache_key }}
 
       - name: Setup - Poetry Install
-        if: ${{ steps.cached-poetry.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
         uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
@@ -282,16 +289,18 @@ jobs:
           virtualenvs-path: .venv
           installer-parallel: true
 
-      - name: Cache - Poetry
-        id: poetry_cache
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
         uses: actions/cache@v4
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
 
       - name: Setup - Poetry install dependencies
-        if: ${{ steps.poetry_cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
         run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
           poetry install --no-interaction
 
       ### Start Script ###
@@ -308,8 +317,11 @@ jobs:
       matrix: ${{ fromJson(needs.para_matrix.outputs.matrix_json) }}
     steps:
       ### Checkout Main and Reusable Workflows ###
-      - name: Checkout Repository - Main
-        uses: actions/checkout@v4
+      # - name: Checkout Repository - Main
+      #   uses: actions/checkout@v4
+      - name: Checkout Repository - Initialize
+        run: |
+          git init
 
       - name: Checkout Repository - Reusable Workflows
         uses: actions/checkout@v4
@@ -329,15 +341,15 @@ jobs:
           cp .github/reusable-workflows/pyproject.toml .
           cp .github/reusable-workflows/poetry.lock .
 
-      - name: Setup - Cache Poetry Installation
-        id: cached-poetry
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
         uses: actions/cache@v4
         with:
           path: ~/.local
-          key: poetry-0
+          key: ${{ env.poetry_installation_cache_key }}
 
       - name: Setup - Poetry Install
-        if: ${{ steps.cached-poetry.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
         uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
@@ -345,16 +357,18 @@ jobs:
           virtualenvs-path: .venv
           installer-parallel: true
 
-      - name: Cache - Poetry
-        id: poetry_cache
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
         uses: actions/cache@v4
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
 
       - name: Setup - Poetry install dependencies
-        if: ${{ steps.poetry_cache.outputs.cache-hit != 'true' }}
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
         run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
           poetry install --no-interaction
 
       ### Start Script ###
