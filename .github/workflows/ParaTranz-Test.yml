@@ -379,6 +379,10 @@ jobs:
           path: MultiVersions
 
       - name: Packer - Generate Mcmeta
+        env:
+          mc_pack_format: ${{ matrix.mc_pack_format }}
+          mc_supported_formats_min: ${{ matrix.mc_supported_formats_min }}
+          mc_supported_formats_max: ${{ matrix.mc_supported_formats_max }}
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/07_github_pack_meta.py
 
