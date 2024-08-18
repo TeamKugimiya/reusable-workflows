@@ -198,8 +198,8 @@ jobs:
           path: .workdir/MultiVersions
           compression-level: 9
 
-  para_martix:
-    name: GitHub - Martix Setup
+  para_matrix:
+    name: GitHub - Matrix Setup
     runs-on: ubuntu-latest
     needs: [ para_paraify ]
     steps:
@@ -241,19 +241,19 @@ jobs:
           poetry install
 
       ### Start Script ###
-      - name: Poetry - Setup Martix Json
-        id: gh_martix
+      - name: Poetry - Setup Matrix Json
+        id: gh_matrix
         run: |
-          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/06_github_martix.py
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/06_github_matrix.py
 
-      - name: DEBUG - Test Martix Json
+      - name: DEBUG - Test Matrix Json
         run: |
-          echo ${{ steps.gh_martix.outputs.martix_json }}
+          echo ${{ steps.gh_matrix.outputs.matrix_json }}
 
   para_packer:
     name: ParaTranz - Pack ParaModsTranslation 
     runs-on: ubuntu-latest
-    needs: [ para_martix ]
+    needs: [ para_matrix ]
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
