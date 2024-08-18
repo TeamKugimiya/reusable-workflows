@@ -27,6 +27,16 @@ def load_tomldata(path: Path) -> dict:
         logger.error(f"Reading toml cause error: {e}")
         sys.exit(1)
 
+def load_jsondata(path: Path) -> dict:
+    try:
+        with open(path, "rb") as f:
+            data = json.load(f)
+            logger.debug(data)
+            return data
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.error(f"Reading json cause error: {e}")
+        sys.exit(1)
+
 ### ParaTranz Utility ###
 def paratranz_get_artifact_info(api_token: str, project_id: int) -> dict:
     headers = {
