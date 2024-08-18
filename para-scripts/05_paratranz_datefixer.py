@@ -36,7 +36,7 @@ def clean_cache(cache: dict) -> dict:
     return cache
 
 def save_cache(cache: dict):
-    json_data = json.dump(cache, f, sort_keys=True)
+    json_data = json.dumps(cache, sort_keys=True)
     logger.debug(json_data)
     with FILE_CACHE_PATH.open("w") as f:
         json.dump(cache, f, sort_keys=True)
