@@ -42,7 +42,11 @@ def save_cache(cache: dict):
 def fix_file_date(artifact_data: str):
     generate_time_epoch = (int(convert_epoch(artifact_data)), int(convert_epoch(artifact_data)))
     workdir_path = list(WORKDIR_FOLDER_PATH.joinpath("MultiVersions").rglob("*.json"))
-    cache_data = clean_cache(load_jsondata(FILE_CACHE_PATH))
+
+    if FILE_CACHE_PATH.exists():
+        cache_data = clean_cache(load_jsondata(FILE_CACHE_PATH))
+    else:
+        cache_data = {"hashes": {}}
 
     for file_path in workdir_path:
         file_hash = calculate_hash(file_path)
