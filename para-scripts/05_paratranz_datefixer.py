@@ -36,8 +36,10 @@ def clean_cache(cache: dict) -> dict:
     return cache
 
 def save_cache(cache: dict):
+    json_data = json.dump(cache, f, sort_keys=True)
+    logger.debug(json_data)
     with FILE_CACHE_PATH.open("w") as f:
-        json.dump(cache, f)
+        json.dump(cache, f, sort_keys=True)
 
 def fix_file_date(artifact_data: str):
     generate_time_epoch = (int(convert_epoch(artifact_data)), int(convert_epoch(artifact_data)))
