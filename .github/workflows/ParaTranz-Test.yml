@@ -240,8 +240,8 @@ jobs:
       - name: Cache - Files Hash
         uses: actions/cache@v4
         with:
-          path: .cache/paratranz_file_cache.json
-          key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_file_cache.json') }}
+          path: .cache/paratranz_files_cache.json
+          key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_files_cache.json') }}
 
       - name: GitHub - Upload Translate Artifact
         uses: actions/upload-artifact@v4
