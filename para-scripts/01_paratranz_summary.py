@@ -1,28 +1,10 @@
 import os
-import sys
-import json
-import requests
+from utils import paratranz_get_artifact_info
 from loguru import logger
 
 # ParaTranz ENVs
-API_URL = "https://paratranz.cn/api"
 API_TOKEN = os.environ.get("API_TOKEN")
 PROJECT_ID = os.environ.get("PROJECT_ID")
-
-def paratranz_get_artifact_info():
-    headers = {
-        "Authorization": f"{API_TOKEN}",
-        "User-Agent": "ParaTranslationPack GitHub Action Script | Made by Efina"
-    }
-    response = requests.get(f"{API_URL}/projects/{PROJECT_ID}/artifacts", headers=headers)
-
-    if response.ok:
-        data = json.loads(response.content)
-        logger.debug(data)
-        return data
-    else:
-        logger.error("Response error: " + str(response.status_code))
-        sys.exit(1)
 
 def paratranz_generate_summary(artifact_data: dict):
     logger.info("Generate artifact info summary...")
@@ -37,7 +19,7 @@ def paratranz_generate_summary(artifact_data: dict):
         summary_env.close()
 
 def main():
-    artifact_info = paratranz_get_artifact_info()
+    artifact_info = paratranz_get_artifact_info(API_TOKEN, PROJECT_ID)
     paratranz_generate_summary(artifact_info)
 
 main()

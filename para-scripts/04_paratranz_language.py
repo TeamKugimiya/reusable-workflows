@@ -30,7 +30,7 @@ def convert_mc_language_json_formate(path: Path):
     else:
         with open(path, "w", encoding="utf8") as f:
             json.dump(converted_data, f, indent=2, ensure_ascii=False)
-        logger.info(f"Convented {path.name}.")
+        logger.success(f"Convented {path.name}.")
 
 def format_language_files():
     workdir_path = list(WORKDIR_FOLDER_PATH.joinpath("MultiVersions").rglob("*.json"))
@@ -54,7 +54,7 @@ def modid_to_folder():
         mod_path.mkdir(parents=True, exist_ok=True)
         i.rename(mod_file)
 
-        logger.info(f"Fixed {mod_id} folder.")
+        logger.success(f"Fixed {mod_id} folder.")
 
 def main():
     format_language_files()

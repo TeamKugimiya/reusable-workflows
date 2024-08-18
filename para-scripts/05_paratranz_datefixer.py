@@ -1,6 +1,5 @@
 import os
-import sys
-import requests
+from utils import paratranz_get_artifact_info
 from pathlib import Path
 from loguru import logger
 from datetime import datetime
@@ -12,21 +11,6 @@ PROJECT_ID = os.environ.get("PROJECT_ID")
 
 # Path ENVs
 WORKDIR_FOLDER_PATH = Path(".workdir")
-
-def paratranz_get_artifact_info():
-    headers = {
-        "Authorization": f"{API_TOKEN}",
-        "User-Agent": "ParaTranslationPack GitHub Action Script | Made by Efina"
-    }
-    response = requests.get(f"{API_URL}/projects/{PROJECT_ID}/artifacts", headers=headers)
-
-    if response.ok:
-        data = response.json()
-        logger.debug(data)
-        return data
-    else:
-        logger.error("Response error: " + str(response.status_code))
-        sys.exit(1)
 
 def convert_epoch(artifact_data: dict) -> int:
     iso_timestamp = artifact_data["createdAt"]
@@ -42,10 +26,10 @@ def fix_file_date(artifact_data: dict):
         logger.debug(i.stat())
         os.utime(i, generate_time_epoch)
         logger.debug(i.stat())
-        logger.info(f"Fixed {i.parts[4]}.")
+        logger.success(f"Fixed {i.parts[4]}.")
 
 def main():
-    artifact_info = paratranz_get_artifact_info()
+    artifact_info = paratranz_get_artifact_info(API_TOKEN, PROJECT_ID)
     fix_file_date(artifact_info)
 
 main()

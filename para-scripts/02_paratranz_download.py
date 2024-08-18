@@ -1,6 +1,7 @@
 import os
 import sys
 import requests
+from utils import setup_dir
 from pathlib import Path
 from loguru import logger
 
@@ -11,13 +12,6 @@ PROJECT_ID = os.environ.get("PROJECT_ID")
 # Path ENVs
 WORKDIR_FOLDER_PATH = Path(".workdir")
 WORKDIR_FILE_PATH = WORKDIR_FOLDER_PATH.joinpath("para_translation_artifact.zip")
-
-def setup_dirs():
-    if not WORKDIR_FOLDER_PATH.exists():
-        logger.info("Create workdir folder")
-        WORKDIR_FOLDER_PATH.mkdir()
-    else:
-        logger.info("Workdir folder exists!")
 
 def paratranz_artifact_download():
     headers = {
@@ -31,13 +25,13 @@ def paratranz_artifact_download():
 
         with open(WORKDIR_FILE_PATH, "wb") as file:
             file.write(response.content)
-        logger.info("Download Success!")
+        logger.success("Download Success!")
     else:
         logger.error(f"Download Failed! Error: {str(response.status_code)}")
         sys.exit(1)
 
 def main():
-    setup_dirs()
+    setup_dir(WORKDIR_FOLDER_PATH, "workdir")
     paratranz_artifact_download()
 
 main()
