@@ -25,8 +25,6 @@ def matrix_generate(version_data: dict) -> dict:
 def main():
     config_data = load_tomldata(CONFIG_PATH)
     matrix_json = matrix_generate(config_data)
-    # matrix_yaml_json = json.dumps(matrix_json, separators=(",", ":"), ensure_ascii=False).replace("'", "\"")
-    # print(matrix_yaml_json)
     github_write_step_output("matrix_json", matrix_json)
 
 main()

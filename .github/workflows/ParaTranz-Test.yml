@@ -39,25 +39,30 @@ jobs:
         with:
           python-version: ${{ env.python_version }}
 
-      - name: Setup - Poetry
-        uses: abatilo/actions-poetry@v3
-
-      - name: Setup - Poetry Setup
+      - name: Setup - Move Poetry Project Files
         run: |
           cp .github/reusable-workflows/pyproject.toml .
           cp .github/reusable-workflows/poetry.lock .
-          poetry config virtualenvs.create true --local
-          poetry config virtualenvs.in-project true --local
+
+      - name: Setup - Poetry Install
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
 
       - name: Cache - Poetry
+        id: poetry_cache
         uses: actions/cache@v4
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
 
       - name: Setup - Poetry install dependencies
+        if: ${{ steps.poetry_cache.outputs.cache-hit != 'true' }}
         run: |
-          poetry install
+          poetry install --no-interaction
 
       ### Start Script ###
       - name: ParaTranz - Cache
@@ -249,7 +254,7 @@ jobs:
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/06_github_matrix.py
 
   para_packer:
-    name: ParaTranz - Pack ParaModsTranslation 
+    name: ParaTranz - PackUp ${{ matrix.mc_version }}
     runs-on: ubuntu-latest
     needs: [ para_matrix ]
     strategy:
@@ -299,15 +304,8 @@ jobs:
           name: ParaTranslateSource
           path: MultiVersions
 
-      - name: DEBUG - List files
+      ### Current we only have main folder, don't have multiversion
+      - name: Packer Tempoary - Move files
         run: |
-          ls -alh
-          ls -alh MultiVersions
-
-      - name: ${{ matrix.mc_version }} Test
-        run: |
-          echo ${{ matrix.mc_pack_format }}
-          echo ${{ matrix.mc_supported_formats_min }}
-          echo ${{ matrix.mc_supported_formats_max }}
-          echo ${{ matrix.modrinth_version }}
-          echo ${{ matrix.directory_path }}
+          mkdir assets
+          mv MultiVersions/Forge/main
