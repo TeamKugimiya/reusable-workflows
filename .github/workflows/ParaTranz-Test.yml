@@ -202,6 +202,8 @@ jobs:
     name: GitHub - Matrix Setup
     runs-on: ubuntu-latest
     needs: [ para_paraify ]
+    outputs:
+      matrix_json: ${{ steps.gh_matrix.outputs.matrix_json }}
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
@@ -246,14 +248,12 @@ jobs:
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/06_github_matrix.py
 
-      - name: DEBUG - Test Matrix Json
-        run: |
-          echo ${{ steps.gh_matrix.outputs.matrix_json }}
-
   para_packer:
     name: ParaTranz - Pack ParaModsTranslation 
     runs-on: ubuntu-latest
     needs: [ para_matrix ]
+    strategy:
+      matrix: ${{ fromJson(needs.para_matrix.outputs.matrix_json) }}
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
@@ -303,3 +303,11 @@ jobs:
         run: |
           ls -alh
           ls -alh MultiVersions
+
+      - name: ${{ matrix.mc_version }} Test
+        run: |
+          echo ${{ matrix.mc_pack_format }}
+          echo ${{ matrix.mc_supported_formats_min }}
+          echo ${{ matrix.mc_supported_formats_max }}
+          echo ${{ matrix.modrinth_version }}
+          echo ${{ matrix.directory_path }}
