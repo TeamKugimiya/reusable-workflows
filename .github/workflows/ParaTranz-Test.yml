@@ -166,6 +166,11 @@ jobs:
           API_TOKEN: ${{ secrets.paratranz_token }}
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/01_paratranz_summary.py
+          {
+            echo 'modrinth_summary<<EOF'
+            cat modrinth_summary.txt
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
 
   para_paraify:
     name: ParaTranz - Paraify

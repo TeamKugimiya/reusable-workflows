@@ -1,8 +1,9 @@
 import os
 import pytz
 from loguru import logger
+from pathlib import Path
 from datetime import datetime
-from utils import paratranz_get_artifact_info, github_write_step_output
+from utils import paratranz_get_artifact_info
 
 # ParaTranz ENVs
 API_TOKEN = os.environ.get("API_TOKEN")
@@ -42,14 +43,24 @@ def paratranz_modrinth_generate_summary(artifact_data: dict):
     date_date, date_time = timestamp_format(artifact_data['createdAt'])
     completion_percent = calculate_completion_percentage(artifact_data['total'], artifact_data['translated'])
 
-    summary = f"## 🌏 {date_date}\n- Para 建構時間：`{date_time}`\n- 總詞條數：`{artifact_data['total']}`\n- 已翻譯條數：`{artifact_data['translated']}`\n- 有疑問條數：`{artifact_data['disputed']}`\n- 翻譯完成度：**{completion_percent:.2f}%**"
+    summary = f"""## 🌏 {date_date}
+- Para 建構時間：`{date_time}`
+- 總詞條數：`{artifact_data['total']}`
+- 已翻譯條數：`{artifact_data['translated']}`
+- 有疑問條數：`{artifact_data['disputed']}`
+- 翻譯完成度：**{completion_percent:.2f}%**
+"""
     logger.debug(summary)
     return summary
+
+def write_file(path: Path, data: str):
+    logger.info("Write a txt...")
+    path.write_text(data)
 
 def main():
     artifact_info = paratranz_get_artifact_info(API_TOKEN, PROJECT_ID)
     paratranz_gh_generate_summary(artifact_info)
     modrinth_summary = paratranz_modrinth_generate_summary(artifact_info)
-    github_write_step_output("modrinth_summary", modrinth_summary)
+    write_file(Path("modrinth_summary.txt"), modrinth_summary)
 
 main()
