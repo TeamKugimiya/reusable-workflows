@@ -249,7 +249,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .cache/paratranz_files_cache.json
-          key: ${{ steps.cache_files_hash_restore.outputs.cache-primary-key }}
+          key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_files_cache.json') }}
 
       - name: GitHub - Compress Archive
         run: |
