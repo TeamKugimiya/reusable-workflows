@@ -48,7 +48,7 @@ def paratranz_modrinth_generate_summary(artifact_data: dict):
 - 總詞條數：`{artifact_data['total']}`\n
 - 已翻譯條數：`{artifact_data['translated']}`\n
 - 有疑問條數：`{artifact_data['disputed']}`\n
-- 翻譯完成度：**{completion_percent}**
+- 翻譯完成度：**{completion_percent:.2f}%**
 """
     logger.debug(summary)
     return summary
