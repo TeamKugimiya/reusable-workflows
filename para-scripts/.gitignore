@@ -1,0 +1,6 @@
+.env
+.cache
+.workdir
+.github
+pack
+__pycache__

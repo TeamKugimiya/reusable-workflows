@@ -1,0 +1,487 @@
+name: "ParaTranz Workflow"
+
+on:
+  workflow_call:
+    inputs:
+      paratranz_project_id:
+        required: true
+        type: string
+      modrinth_publish:
+        required: true
+        type: boolean
+      modrinth_id:
+        required: false
+        type: string
+    secrets:
+      paratranz_token:
+        required: true
+      modrinth_token:
+        required: false
+
+env:
+  python_version: "3.12"
+  reusable_workflows_ref: main
+  poetry_installation_cache_key: poetry_cache_01
+  LOGURU_LEVEL: "INFO"
+
+jobs:
+  para_cache:
+    name: ParaTranz - Cache
+    runs-on: ubuntu-latest
+    outputs:
+      cache_hit: ${{ steps.para_cache.outputs.cache-hit }}
+    steps:
+      ### Checkout Main and Reusable Workflows ###
+      - name: Checkout Repository - Main
+        uses: actions/checkout@v4
+
+      - name: Checkout Repository - Reusable Workflows
+        uses: actions/checkout@v4
+        with:
+          repository: TeamKugimiya/reusable-workflows
+          ref: ${{ env.reusable_workflows_ref }}
+          path: .github/reusable-workflows
+
+      ### Setup script dependencies ###
+      - name: Setup - Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.python_version }}
+
+      - name: Setup - Move Poetry Project Files
+        run: |
+          cp .github/reusable-workflows/pyproject.toml .
+          cp .github/reusable-workflows/poetry.lock .
+
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local
+          key: ${{ env.poetry_installation_cache_key }}
+
+      - name: Setup - Poetry Install
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+
+      - name: Setup - Poetry install dependencies
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+          poetry install --no-interaction
+
+      ### Start Script ###
+      - name: ParaTranz - Cache
+        env:
+          PROJECT_ID: ${{ inputs.paratranz_project_id }}
+          API_TOKEN: ${{ secrets.paratranz_token }}
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/00_paratranz_cache.py
+
+      - name: Cache - ParaTranz
+        id: para_cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/paratranz_cache.txt
+          key: paratranz_cache-${{ hashFiles('.cache/paratranz_cache.txt') }}
+
+  para_summary:
+    name: ParaTranz - Summary
+    runs-on: ubuntu-latest
+    needs: [ para_cache ]
+    outputs:
+      modrinth_summary: ${{ steps.summary.outputs.modrinth_summary }}
+    if: ${{ needs.para_cache.outputs.cache_hit != 'true' }}
+    steps:
+      ### Checkout Main and Reusable Workflows ###
+      - name: Checkout Repository - Main
+        uses: actions/checkout@v4
+
+      - name: Checkout Repository - Reusable Workflows
+        uses: actions/checkout@v4
+        with:
+          repository: TeamKugimiya/reusable-workflows
+          ref: ${{ env.reusable_workflows_ref }}
+          path: .github/reusable-workflows
+
+      ### Setup script dependencies ###
+      - name: Setup - Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.python_version }}
+
+      - name: Setup - Move Poetry Project Files
+        run: |
+          cp .github/reusable-workflows/pyproject.toml .
+          cp .github/reusable-workflows/poetry.lock .
+
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local
+          key: ${{ env.poetry_installation_cache_key }}
+
+      - name: Setup - Poetry Install
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+
+      - name: Setup - Poetry install dependencies
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+          poetry install --no-interaction
+
+      ### Start Script ###
+      - name: ParaTranz - Generate Summary
+        id: summary
+        env:
+          PROJECT_ID: ${{ inputs.paratranz_project_id }}
+          API_TOKEN: ${{ secrets.paratranz_token }}
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/01_paratranz_summary.py
+          {
+            echo 'modrinth_summary<<EOF'
+            cat modrinth_summary.txt
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+  para_paraify:
+    name: ParaTranz - Paraify
+    runs-on: ubuntu-latest
+    needs: [ para_cache ]
+    if: ${{ needs.para_cache.outputs.cache_hit != 'true' }}
+    steps:
+      ### Checkout Main and Reusable Workflows ###
+      - name: Checkout Repository - Main
+        uses: actions/checkout@v4
+
+      - name: Checkout Repository - Reusable Workflows
+        uses: actions/checkout@v4
+        with:
+          repository: TeamKugimiya/reusable-workflows
+          ref: ${{ env.reusable_workflows_ref }}
+          path: .github/reusable-workflows
+
+      ### Setup script dependencies ###
+      - name: Setup - Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.python_version }}
+
+      - name: Setup - Move Poetry Project Files
+        run: |
+          cp .github/reusable-workflows/pyproject.toml .
+          cp .github/reusable-workflows/poetry.lock .
+
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local
+          key: ${{ env.poetry_installation_cache_key }}
+
+      - name: Setup - Poetry Install
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+
+      - name: Setup - Poetry install dependencies
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+          poetry install --no-interaction
+
+      ### Start Script ###
+      - name: ParaTranz - Download Artifact
+        env:
+          PROJECT_ID: ${{ inputs.paratranz_project_id }}
+          API_TOKEN: ${{ secrets.paratranz_token }}
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/02_paratranz_download.py
+
+      - name: ParaTranz - Extract Artifact
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/03_paratranz_extract.py
+
+      - name: ParaTranz - Minecraft Language JSON & Structure
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/04_paratranz_language.py
+
+      - name: Cache - Restore Files Hash
+        id: cache_files_hash_restore
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/paratranz_files_cache.json
+          key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_files_cache.json') }}
+          restore-keys: paratranz_files_cache-
+
+      - name: ParaTranz - Date Fixer
+        env:
+          PROJECT_ID: ${{ inputs.paratranz_project_id }}
+          API_TOKEN: ${{ secrets.paratranz_token }}
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/05_paratranz_datefixer.py
+
+      - name: Cache - Save Files Hash
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/paratranz_files_cache.json
+          key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_files_cache.json') }}
+
+      - name: GitHub - Compress Archive
+        run: |
+          cd .workdir
+          tar -zcvf MultiVersions-Archive.tar.gz MultiVersions
+
+      - name: GitHub - Upload Translate Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ParaTranslateSource
+          path: .workdir/MultiVersions-Archive.tar.gz
+          compression-level: 9
+
+  para_matrix:
+    name: GitHub - Matrix Setup
+    runs-on: ubuntu-latest
+    needs: [ para_paraify ]
+    outputs:
+      matrix_json: ${{ steps.gh_matrix.outputs.matrix_json }}
+    steps:
+      ### Checkout Main and Reusable Workflows ###
+      - name: Checkout Repository - Main
+        uses: actions/checkout@v4
+
+      - name: Checkout Repository - Reusable Workflows
+        uses: actions/checkout@v4
+        with:
+          repository: TeamKugimiya/reusable-workflows
+          ref: ${{ env.reusable_workflows_ref }}
+          path: .github/reusable-workflows
+
+      ### Setup script dependencies ###
+      - name: Setup - Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.python_version }}
+
+      - name: Setup - Move Poetry Project Files
+        run: |
+          cp .github/reusable-workflows/pyproject.toml .
+          cp .github/reusable-workflows/poetry.lock .
+
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local
+          key: ${{ env.poetry_installation_cache_key }}
+
+      - name: Setup - Poetry Install
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+
+      - name: Setup - Poetry install dependencies
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+          poetry install --no-interaction
+
+      ### Start Script ###
+      - name: Poetry - Setup Matrix Json
+        id: gh_matrix
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/06_github_matrix.py
+
+  para_packer:
+    name: ParaTranz - PackUp ${{ matrix.mc_version }}
+    runs-on: ubuntu-latest
+    needs: [ para_matrix ]
+    strategy:
+      matrix: ${{ fromJson(needs.para_matrix.outputs.matrix_json) }}
+    steps:
+      ### Checkout Main and Reusable Workflows ###
+      # - name: Checkout Repository - Main
+      #   uses: actions/checkout@v4
+      - name: Checkout Repository - Initialize
+        run: |
+          git init
+
+      - name: Checkout Repository - Reusable Workflows
+        uses: actions/checkout@v4
+        with:
+          repository: TeamKugimiya/reusable-workflows
+          ref: ${{ env.reusable_workflows_ref }}
+          path: .github/reusable-workflows
+
+      ### Setup script dependencies ###
+      - name: Setup - Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.python_version }}
+
+      - name: Setup - Move Poetry Project Files
+        run: |
+          cp .github/reusable-workflows/pyproject.toml .
+          cp .github/reusable-workflows/poetry.lock .
+
+      - name: Cache - Poetry Installation
+        id: poetry_installation_cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local
+          key: ${{ env.poetry_installation_cache_key }}
+
+      - name: Setup - Poetry Install
+        if: ${{ steps.poetry_installation_cache.outputs.cache-hit != 'true' }}
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+
+      - name: Cache - Poetry Dependencies
+        id: poetry_dependencies_cache
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+
+      - name: Setup - Poetry install dependencies
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+          poetry install --no-interaction
+
+      ### Start Script ###
+      - name: GitHub - Download Translate Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ParaTranslateSource
+
+      - name: GitHub - Uncompress Archive
+        run: |
+          tar -zxvf MultiVersions-Archive.tar.gz
+          rm MultiVersions-Archive.tar.gz
+
+      - name: Packer - Generate Mcmeta
+        env:
+          mc_pack_format: ${{ matrix.mc_pack_format }}
+          mc_supported_formats_min: ${{ matrix.mc_supported_formats_min }}
+          mc_supported_formats_max: ${{ matrix.mc_supported_formats_max }}
+        run: |
+          poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/07_github_pack_meta.py
+
+      ### Current we only have main folder, don't have multiversion
+      - name: Packer Tempoary - Move files
+        run: |
+          mv MultiVersions/Forge/main/* pack/assets/
+
+      - name: Packer - DEBUG Check State
+        run: |
+          stat pack/assets/advancednetherite/lang/zh_tw.json
+          stat pack/assets/magnumtorch/lang/zh_tw.json
+          stat pack/assets/toms_storage/lang/zh_tw.json
+
+      - name: Packer - PackSquash
+        uses: ComunidadAylas/PackSquash-action@v4
+        with:
+          packsquash_version: latest-unstable
+          artifact_name: ParaTranslationPack-${{ matrix.mc_version }}
+          options: |
+            pack_directory = 'pack'
+
+  para_modrinth:
+    name: Modrinth - Publish ${{ matrix.mc_version }}
+    runs-on: ubuntu-latest
+    if: ${{ inputs.modrinth_publish }}
+    needs: [ para_matrix, para_packer, para_summary ]
+    strategy:
+      max-parallel: 1
+      matrix: ${{ fromJson(needs.para_matrix.outputs.matrix_json) }}
+    steps:
+      - name: GitHub - Generate Date
+        id: date
+        run: |
+          TODAY=$(TZ="Asia/Taipei" date +%Y%m%d)
+          TODAY_DASH=$(TZ="Asia/Taipei" date +%Y-%m-%d)
+          echo "today=$TODAY" >> "$GITHUB_OUTPUT"
+          echo "today_dash=$TODAY_DASH" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub - Download ParaTranslationPack
+        uses: actions/download-artifact@v4
+        with:
+          name: ParaTranslationPack-${{ matrix.mc_version }}
+
+      - name: GitHub - Rename ParaTranslationPack
+        run: |
+          mv pack.zip ParaTranslationPack-${{ matrix.mc_version }}.zip
+
+      - name: Modrinth - Publish ${{ matrix.mc_version }}
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ inputs.modrinth_id }}
+          modrinth-unfeature-mode: subset
+          name: Para 翻譯包 ${{ matrix.mc_version }}｜${{ steps.date.outputs.today_dash }}
+          version: ${{ matrix.mc_version }}-${{ steps.date.outputs.today }}
+          version-type: release
+          changelog: |
+            ${{ needs.para_summary.outputs.modrinth_summary}}
+          loaders: minecraft
+          game-versions: ${{ matrix.modrinth_version }}
+          files: |
+            ParaTranslationPack-${{ matrix.mc_version }}.zip
+          modrinth-token: ${{ secrets.modrinth_token }}
