@@ -14,7 +14,7 @@ env:
   python_version: "3.12"
   reusable_workflows_ref: ci/para
   poetry_installation_cache_key: poetry_cache_01
-  LOGURU_LEVEL: "DEBUG"
+  LOGURU_LEVEL: "INFO"
 
 jobs:
   para_cache:
