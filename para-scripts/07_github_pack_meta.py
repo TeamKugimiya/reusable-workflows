@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 MC_PACK_FORMAT = os.environ.get("mc_pack_format")
 MC_SUPPORTED_FORMATS_MIN = os.environ.get("mc_supported_formats_min")
 MC_SUPPORTED_FORMATS_MAX = os.environ.get("mc_supported_formats_max")
-DESCRIPTION = [ "§3§lPara§r §f翻譯包｜§7", "\n§3感謝所有參與專案的貢獻者！" ]
+DESCRIPTION = [ "§fPara§r 翻譯包｜§b", "\n§3感謝所有參與專案的貢獻者！" ]
 
 ## File path
 PACK_PATH = Path("pack/assets")
@@ -20,7 +20,8 @@ def current_date() -> str:
     tz = pytz.timezone("Asia/Taipei")
     current_time = datetime.now(tz)
     logger.debug(current_time)
-    formatted_time = current_time.strftime("%Y/%m/%d-%H:%M")
+    formatted_time = current_time.strftime("%Y/%m/%d")
+    # Beta will have hour and min display %H:%M
     logger.debug(formatted_time)
     return formatted_time
 
