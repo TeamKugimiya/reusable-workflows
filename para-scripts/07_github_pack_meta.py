@@ -4,7 +4,7 @@ import pytz
 from pathlib import Path
 from loguru import logger
 from utils import setup_dir
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 ## Pack mcmeta data
 MC_PACK_FORMAT = os.environ.get("mc_pack_format")

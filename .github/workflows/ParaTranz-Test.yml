@@ -102,6 +102,8 @@ jobs:
     name: ParaTranz - Summary
     runs-on: ubuntu-latest
     needs: [ para_cache ]
+    outputs:
+      modrinth_summary: ${{ steps.summary.outputs.modrinth_summary }}
     if: ${{ needs.para_cache.outputs.cache_hit != 'true' }}
     steps:
       ### Checkout Main and Reusable Workflows ###
@@ -158,6 +160,7 @@ jobs:
 
       ### Start Script ###
       - name: ParaTranz - Generate Summary
+        id: summary
         env:
           PROJECT_ID: ${{ inputs.paratranz_project_id }}
           API_TOKEN: ${{ secrets.paratranz_token }}
@@ -440,7 +443,7 @@ jobs:
     name: Modrinth - Publish ${{ matrix.mc_version }}
     runs-on: ubuntu-latest
     if: ${{ inputs.modrinth_publish }}
-    needs: [ para_matrix, para_packer ]
+    needs: [ para_matrix, para_packer, para_summary ]
     strategy:
       matrix: ${{ fromJson(needs.para_matrix.outputs.matrix_json) }}
     steps:
@@ -467,7 +470,8 @@ jobs:
           name: Para 翻譯包 ${{ matrix.mc_version }}｜${{ steps.date.outputs.today }}
           version: ${{ matrix.mc_version }}-${{ steps.date.outputs.today }}
           version-type: release
-          # changelog: 
+          changelog: |
+            ${{ needs.para_summary.outputs.modrinth_summary}}
           loaders: minecraft
           game-versions: ${{ matrix.modrinth_version }}
           files: |
