@@ -6,9 +6,17 @@ on:
       paratranz_project_id:
         required: true
         type: string
+      modrinth_publish:
+        required: true
+        type: boolean
+      modrinth_id:
+        required: false
+        type: string
     secrets:
       paratranz_token:
         required: true
+      modrinth_token:
+        required: false
 
 env:
   python_version: "3.12"
@@ -427,3 +435,41 @@ jobs:
           artifact_name: ParaTranslationPack-${{ matrix.mc_version }}
           options: |
             pack_directory = 'pack'
+
+  para_modrinth:
+    name: Modrinth - Publish ${{ matrix.mc_version }}
+    runs-on: ubuntu-latest
+    if: ${{ inputs.modrinth_publish }}
+    needs: [ para_matrix, para_packer ]
+    strategy:
+      matrix: ${{ fromJson(needs.para_matrix.outputs.matrix_json) }}
+    steps:
+      - name: GitHub - Generate Date
+        id: date
+        run: |
+          TODAY=$(TZ="Asia/Taipei" date +%Y-%m-%d)
+          echo "today=$TODAY" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub - Download ParaTranslationPack
+        uses: actions/download-artifact@v4
+        with:
+          name: ParaTranslationPack-${{ matrix.mc_version }}
+
+      - name: GitHub - Rename ParaTranslationPack
+        run: |
+          mv pack.zip ParaTranslationPack-${{ matrix.mc_version }}.zip
+
+      - name: Modrinth - Publish ${{ matrix.mc_version }}
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ inputs.modrinth_id }}
+          modrinth-unfeature-mode: subset
+          name: Para 翻譯包 ${{ matrix.mc_version }}｜${{ steps.date.outputs.today }}
+          version: ${{ matrix.mc_version }}-${{ steps.date.outputs.today }}
+          version-type: release
+          # changelog: 
+          loaders: minecraft
+          game-versions: ${{ matrix.modrinth_version }}
+          files: |
+            ParaTranslationPack-${{ matrix.mc_version }}.zip
+          modrinth-token: ${{ secrets.modrinth_token }}
