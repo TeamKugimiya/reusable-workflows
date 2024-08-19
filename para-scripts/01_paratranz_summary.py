@@ -42,14 +42,7 @@ def paratranz_modrinth_generate_summary(artifact_data: dict):
     date_date, date_time = timestamp_format(artifact_data['createdAt'])
     completion_percent = calculate_completion_percentage(artifact_data['total'], artifact_data['translated'])
 
-    summary = f"""
-## 🌏 {date_date}\n
-- Para 建構時間：`{date_time}`\n
-- 總詞條數：`{artifact_data['total']}`\n
-- 已翻譯條數：`{artifact_data['translated']}`\n
-- 有疑問條數：`{artifact_data['disputed']}`\n
-- 翻譯完成度：**{completion_percent:.2f}%**
-"""
+    summary = f"## 🌏 {date_date}\n- Para 建構時間：`{date_time}`\n- 總詞條數：`{artifact_data['total']}`\n- 已翻譯條數：`{artifact_data['translated']}`\n- 有疑問條數：`{artifact_data['disputed']}`\n- 翻譯完成度：**{completion_percent:.2f}%**"
     logger.debug(summary)
     return summary
 
