@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 MC_PACK_FORMAT = os.environ.get("mc_pack_format")
 MC_SUPPORTED_FORMATS_MIN = os.environ.get("mc_supported_formats_min")
 MC_SUPPORTED_FORMATS_MAX = os.environ.get("mc_supported_formats_max")
-DESCRIPTION = [ "§3Para §f翻譯包｜§7", "\n§3感謝所有參與專案的貢獻者！" ]
+DESCRIPTION = [ "§3§lPara§r §f翻譯包｜§7", "\n§3感謝所有參與專案的貢獻者！" ]
 
 ## File path
 PACK_PATH = Path("pack/assets")
