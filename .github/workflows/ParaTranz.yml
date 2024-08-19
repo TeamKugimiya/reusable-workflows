@@ -430,12 +430,6 @@ jobs:
         run: |
           mv MultiVersions/Forge/main/* pack/assets/
 
-      - name: Packer - DEBUG Check State
-        run: |
-          stat pack/assets/advancednetherite/lang/zh_tw.json
-          stat pack/assets/magnumtorch/lang/zh_tw.json
-          stat pack/assets/toms_storage/lang/zh_tw.json
-
       - name: Packer - PackSquash
         uses: ComunidadAylas/PackSquash-action@v4
         with:
