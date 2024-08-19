@@ -13,11 +13,9 @@ def timestamp_format(timestamp: str):
     dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
     tz_taipei = pytz.timezone("Asia/Taipei")
     dt_taipei = dt.replace(tzinfo=pytz.utc).astimezone(tz_taipei)
-    formatted_date = dt_taipei.strftime("%Y/%m/%d")
+    formatted_date = dt_taipei.strftime("%Y/%m/%d %H:%M:%S")
     logger.debug(formatted_date)
-    formatted_time = dt_taipei.strftime("%Y/%m/%d %H:%M:%S")
-    logger.debug(formatted_time)
-    return formatted_date, formatted_time
+    return formatted_date
 
 def calculate_completion_percentage(total_strings: int, translated_strings: int) -> float:
     if total_strings == 0:
@@ -40,10 +38,10 @@ def paratranz_gh_generate_summary(artifact_data: dict):
 def paratranz_modrinth_generate_summary(artifact_data: dict):
     logger.info("Generate modrinth summary...")
 
-    date_date, date_time = timestamp_format(artifact_data['createdAt'])
+    date_time = timestamp_format(artifact_data['createdAt'])
     completion_percent = calculate_completion_percentage(artifact_data['total'], artifact_data['translated'])
 
-    summary = f"""## 🌏 {date_date}
+    summary = f"""## 🌏 翻譯資訊
 - Para 建構時間：`{date_time}`
 - 總詞條數：`{artifact_data['total']}`
 - 已翻譯條數：`{artifact_data['translated']}`
