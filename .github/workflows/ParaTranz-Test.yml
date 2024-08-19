@@ -389,7 +389,7 @@ jobs:
         with:
           name: ParaTranslateSource
 
-      - name: GitHub - UnComparess Archive
+      - name: GitHub - Uncompress Archive
         run: |
           tar -zxvf MultiVersions-Archive.tar.gz
           rm MultiVersions-Archive.tar.gz
