@@ -230,8 +230,9 @@ jobs:
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/04_paratranz_language.py
 
-      - name: Cache - Files Hash
-        uses: actions/cache@v4
+      - name: Cache - Restore Files Hash
+        id: cache_files_hash_restore
+        uses: actions/cache/restore@v4
         with:
           path: .cache/paratranz_files_cache.json
           key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_files_cache.json') }}
@@ -243,6 +244,12 @@ jobs:
           API_TOKEN: ${{ secrets.paratranz_token }}
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/05_paratranz_datefixer.py
+
+      - name: Cache - Save Files Hash
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/paratranz_files_cache.json
+          key: ${{ steps.cache_files_hash_restore.outputs.cache-primary-key }}
 
       - name: GitHub - Compress Archive
         run: |
