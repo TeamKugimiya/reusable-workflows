@@ -1,4 +1,4 @@
-name: "Testing ParaTranz Workflow"
+name: "ParaTranz Workflow"
 
 on:
   workflow_call:
@@ -20,7 +20,7 @@ on:
 
 env:
   python_version: "3.12"
-  reusable_workflows_ref: ci/para
+  reusable_workflows_ref: main
   poetry_installation_cache_key: poetry_cache_01
   LOGURU_LEVEL: "INFO"
 
@@ -450,13 +450,16 @@ jobs:
     if: ${{ inputs.modrinth_publish }}
     needs: [ para_matrix, para_packer, para_summary ]
     strategy:
+      max-parallel: 1
       matrix: ${{ fromJson(needs.para_matrix.outputs.matrix_json) }}
     steps:
       - name: GitHub - Generate Date
         id: date
         run: |
-          TODAY=$(TZ="Asia/Taipei" date +%Y-%m-%d)
+          TODAY=$(TZ="Asia/Taipei" date +%Y%m%d)
+          TODAY_DASH=$(TZ="Asia/Taipei" date +%Y-%m-%d)
           echo "today=$TODAY" >> "$GITHUB_OUTPUT"
+          echo "today_dash=$TODAY_DASH" >> "$GITHUB_OUTPUT"
 
       - name: GitHub - Download ParaTranslationPack
         uses: actions/download-artifact@v4
@@ -472,7 +475,7 @@ jobs:
         with:
           modrinth-id: ${{ inputs.modrinth_id }}
           modrinth-unfeature-mode: subset
-          name: Para 翻譯包 ${{ matrix.mc_version }}｜${{ steps.date.outputs.today }}
+          name: Para 翻譯包 ${{ matrix.mc_version }}｜${{ steps.date.outputs.today_dash }}
           version: ${{ matrix.mc_version }}-${{ steps.date.outputs.today }}
           version-type: release
           changelog: |
