@@ -244,11 +244,16 @@ jobs:
         run: |
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/05_paratranz_datefixer.py
 
+      - name: GitHub - Compress Archive
+        run: |
+          cd .workdir
+          tar -zcvf MultiVersions-Archive.tar.gz MultiVersions
+
       - name: GitHub - Upload Translate Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ParaTranslateSource
-          path: .workdir/MultiVersions
+          path: .workdir/MultiVersions-Archive.tar.gz
           compression-level: 9
 
   para_matrix:
@@ -383,7 +388,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ParaTranslateSource
-          path: MultiVersions
+
+      - name: GitHub - UnComparess Archive
+        run: |
+          tar -zxvf MultiVersions-Archive.tar.gz
+          rm MultiVersions-Archive.tar.gz
 
       - name: Packer - Generate Mcmeta
         env:
