@@ -430,6 +430,12 @@ jobs:
         run: |
           mv MultiVersions/Forge/main/* pack/assets/
 
+      - name: Packer - ResourcePack Image and License
+        run: |
+          wget -O pack.png https://raw.githubusercontent.com/TeamKugimiya/ParaTranslationPack/main/pack-assets/pack.png
+          wget -O LICENSE https://raw.githubusercontent.com/TeamKugimiya/ParaTranslationPack/main/pack-assets/LICENSE
+        working-directory: pack
+
       - name: Packer - PackSquash
         uses: ComunidadAylas/PackSquash-action@v4
         with:
@@ -437,6 +443,8 @@ jobs:
           artifact_name: ParaTranslationPack-${{ matrix.mc_version }}
           options: |
             pack_directory = 'pack'
+            ['LICENSE']
+            force_include = true
 
   para_modrinth:
     name: Modrinth - Publish ${{ matrix.mc_version }}

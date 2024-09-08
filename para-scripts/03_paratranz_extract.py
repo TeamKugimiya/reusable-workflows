@@ -17,8 +17,13 @@ def fix_paths(workdir_path: Path, correct_path: Path, remove_path: Path):
     shutil.rmtree(remove_path)
     logger.success("Done!")
 
+def remove_utf8(path: Path):
+    logger.info("Remove ut8 folder...")
+    shutil.rmtree(path)
+
 def main():
     archive_extract(WORKDIR_FILE_PATH, WORKDIR_FOLDER_PATH)
-    fix_paths(WORKDIR_FOLDER_PATH.joinpath("utf8/MultiVersions"), WORKDIR_FOLDER_PATH.joinpath("MultiVersions"), WORKDIR_FOLDER_PATH.joinpath("utf8"))
+    remove_utf8(WORKDIR_FOLDER_PATH.joinpath("utf8"))
+    fix_paths(WORKDIR_FOLDER_PATH.joinpath("raw/MultiVersions"), WORKDIR_FOLDER_PATH.joinpath("MultiVersions"), WORKDIR_FOLDER_PATH.joinpath("raw"))
 
 main()

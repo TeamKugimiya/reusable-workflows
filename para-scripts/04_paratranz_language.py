@@ -5,8 +5,18 @@ from loguru import logger
 # Path ENVs
 WORKDIR_FOLDER_PATH = Path(".workdir")
 
+def load_json(path: Path) -> dict:
+    try:
+        data = json.loads(path.read_text())
+    except Exception as e:
+        logger.error("Loading json has an error:")
+        logger.error(f"| path: {path}")
+        logger.error(f"| info: {e}")
+        data = {}
+    return data
+
 def convert_mc_language_json_formate(path: Path):
-    data = json.loads(path.read_text())
+    data = load_json(path)
     converted_data = {}
 
     for i in data:
