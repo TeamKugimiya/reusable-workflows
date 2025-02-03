@@ -4,13 +4,13 @@ version = "1.0"
 description = ""
 authors = ["Miku <26039249+xMikux@users.noreply.github.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-loguru = "^0.7.2"
-requests = "^2.32.3"
-pytz = "^2024.1"
-
+loguru = "^0.7.3"
+requests = "2.32.3"
+pytz = "2025.1"
 
 [build-system]
 requires = ["poetry-core"]
