@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import shutil
 from pathlib import Path
 from loguru import logger
@@ -62,4 +63,7 @@ data_mcmeta = {
     "description": PACK_DESCRIPTION
   }
 }
-PACK_PATH.write_text(str(data_mcmeta))
+data_mcmeta_json = json.dumps(data_mcmeta, indent=2)
+logger.info("Writing pack.mcmeta...")
+logger.info(data_mcmeta_json)
+PACK_PATH.write_text(data_mcmeta_json)
