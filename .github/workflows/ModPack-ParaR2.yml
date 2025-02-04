@@ -21,7 +21,7 @@ on:
         description: "資源包描述"
         type: string
     secrets:
-      PARA_TOKEN:
+      paratranz_token:
         description: "ParaTranz API Token"
         required: true
 
@@ -65,5 +65,4 @@ jobs:
           PROJECT_ID: ${{ inputs.para_project_id }}
           PACK_FORMAT: ${{ inputs.para_pack_format }}
           PACK_DESCRIPTION: ${{ inputs.para_pack_description }}
-          AUTH_TOKEN: ${{ secrets.PARA_TOKEN }}
-
+          AUTH_TOKEN: ${{ secrets.paratranz_token }}
