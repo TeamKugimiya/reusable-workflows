@@ -1,11 +1,69 @@
 name: 模組包｜ParaR2
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      workflow_branch:
+        required: false
+        description: "工作流程分支"
+        type: string
+        default: "main"
+      para_project_id:
+        required: true
+        description: "ParaTranz 專案 ID"
+        type: string
+      para_pack_format:
+        required: true
+        description: "資源包版本格式"
+        type: string
+      para_pack_description:
+        required: true
+        description: "資源包描述"
+        type: string
+    secrets:
+      PARA_TOKEN:
+        description: "ParaTranz API Token"
+        required: true
 
 jobs:
   paraR2:
     name: ParaR2
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Hello World!"
+      - name: 設定 - Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 設定 - Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 2.0.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+      - name: 設定 - 下載 Poetry 設定檔案
+        run: |
+          curl -sSL https://raw.githubusercontent.com/TeamKugimiya/reusable-workflows/refs/heads/${{ inputs.workflow_branch }}/ModPack-ParaR2/pyproject.toml -o pyproject.toml
+          curl -sSL https://raw.githubusercontent.com/TeamKugimiya/reusable-workflows/refs/heads/${{ inputs.workflow_branch }}/ModPack-ParaR2/poetry.lock -o poetry.lock
+      - name: 設定 - 快取 Poetry 依賴
+        id: poetry_dependencies_cache
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+      - name: 設定 - 安裝 Poetry 依賴
+        if: ${{ steps.poetry_dependencies_cache.outputs.cache-hit != 'true' }}
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+          poetry install --no-interaction
+      - name: 執行 - ParaR2
+        run: |
+          curl -sSL https://raw.githubusercontent.com/TeamKugimiya/reusable-workflows/refs/heads/${{ inputs.workflow_branch }}/ModPack-ParaR2/main.py | poetry run python -
+        env:
+          PROJECT_ID: ${{ inputs.para_project_id }}
+          PACK_FORMAT: ${{ inputs.para_pack_format }}
+          PACK_DESCRIPTION: ${{ inputs.para_pack_description }}
+          AUTH_TOKEN: ${{ secrets.PARA_TOKEN }}
+
