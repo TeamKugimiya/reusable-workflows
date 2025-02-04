@@ -30,6 +30,10 @@ jobs:
     name: ParaR2
     runs-on: ubuntu-latest
     steps:
+      # - name: 設定 - s3cmd
+      #   uses: s3-actions/s3cmd@v1.9.0
+      #   with:
+      #     provider: cloudflare
       - name: 設定 - Python
         uses: actions/setup-python@v5
         with:
@@ -66,3 +70,11 @@ jobs:
           PACK_FORMAT: ${{ inputs.para_pack_format }}
           PACK_DESCRIPTION: ${{ inputs.para_pack_description }}
           AUTH_TOKEN: ${{ secrets.paratranz_token }}
+      - name: 執行 - PackSquash
+        uses: ComunidadAylas/PackSquash-action@v4
+        with:
+          packsquash_version: latest-unstable
+          options: |
+            pack_directory = 'workdir'
+            zip_spec_conformance_level = 'balanced'
+            output_file_path = 'pack.zip'
