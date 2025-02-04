@@ -77,4 +77,5 @@ jobs:
           options: |
             pack_directory = 'workdir'
             zip_spec_conformance_level = 'balanced'
+            never_store_squash_times = true
             output_file_path = 'pack.zip'
