@@ -65,6 +65,7 @@ jobs:
       - name: 執行 - ParaR2
         run: |
           curl -sSL https://raw.githubusercontent.com/TeamKugimiya/reusable-workflows/refs/heads/${{ inputs.workflow_branch }}/ModPack-ParaR2/main.py | poetry run python -
+          cat workdir/pack.mcmeta
         env:
           PROJECT_ID: ${{ inputs.para_project_id }}
           PACK_FORMAT: ${{ inputs.para_pack_format }}
