@@ -1,0 +1,11 @@
+name: 模組包｜ParaR2
+
+on:
+  workflow_call: {}
+
+jobs:
+  paraR2:
+    name: ParaR2
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hello World!"
