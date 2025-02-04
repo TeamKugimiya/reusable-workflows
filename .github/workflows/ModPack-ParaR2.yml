@@ -100,3 +100,6 @@ jobs:
       - name: 執行 - 上傳資源包至 R2
         run: |
           s3cmd put ${{ steps.set_project_name.outputs.project_name }}-TestPack.zip s3://${{ secrets.r2_bucket_name }}/modpack/${{ steps.set_project_name.outputs.project_name }}/
+      - name: 執行 - 觸發快取更新
+        run: |
+          wget https://teamkugimiya-r2.efina.eu.org/modpack/${{ steps.set_project_name.outputs.project_name }}/${{ steps.set_project_name.outputs.project_name }}-TestPack.zip
