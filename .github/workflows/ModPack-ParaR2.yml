@@ -42,6 +42,9 @@ jobs:
     name: ParaR2
     runs-on: ubuntu-latest
     steps:
+      - name: 設定 - 模組包專案名稱
+        id: set_project_name
+        run: echo "project_name=$(echo ${{ github.repository }} | sed 's/^TeamKugimiya\///')" >> "$GITHUB_OUTPUT"
       - name: 設定 - s3cmd
         uses: s3-actions/s3cmd@v1.9.0
         with:
@@ -93,7 +96,7 @@ jobs:
             pack_directory = 'workdir'
             zip_spec_conformance_level = 'balanced'
             never_store_squash_times = true
-            output_file_path = '${{ github.repository }}-TestPack.zip'
+            output_file_path = '${{ steps.set_project_name.outputs.project_name }}-TestPack.zip'
       - name: 執行 - 上傳資源包至 R2
         run: |
-          s3cmd put ${{ github.repository }}-TestPack.zip s3://${{ secrets.r2_bucket_name }}/modpack/${{ github.repository }}/
+          s3cmd put ${{ steps.set_project_name.outputs.project_name }}-TestPack.zip s3://${{ secrets.r2_bucket_name }}/modpack/${{ steps.set_project_name.outputs.project_name }}/
