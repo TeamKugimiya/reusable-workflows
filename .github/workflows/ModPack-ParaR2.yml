@@ -24,16 +24,31 @@ on:
       paratranz_token:
         description: "ParaTranz API Token"
         required: true
+      r2_account_id:
+        description: "Cloudflare Account ID"
+        required: true
+      r2_access_key:
+        description: "Cloudflare Access Key"
+        required: true
+      r2_secret_key:
+        description: "Cloudflare Secret Key"
+        required: true
+      r2_bucket_name:
+        description: "Cloudflare Bucket Name"
+        required: true
 
 jobs:
   paraR2:
     name: ParaR2
     runs-on: ubuntu-latest
     steps:
-      # - name: 設定 - s3cmd
-      #   uses: s3-actions/s3cmd@v1.9.0
-      #   with:
-      #     provider: cloudflare
+      - name: 設定 - s3cmd
+        uses: s3-actions/s3cmd@v1.9.0
+        with:
+          provider: cloudflare
+          account_id: ${{ secrets.r2_account_id }}
+          access_key: ${{ secrets.r2_access_key }}
+          secret_key: ${{ secrets.r2_secret_key }}
       - name: 設定 - Python
         uses: actions/setup-python@v5
         with:
@@ -65,7 +80,6 @@ jobs:
       - name: 執行 - ParaR2
         run: |
           curl -sSL https://raw.githubusercontent.com/TeamKugimiya/reusable-workflows/refs/heads/${{ inputs.workflow_branch }}/ModPack-ParaR2/main.py | poetry run python -
-          cat workdir/pack.mcmeta
         env:
           PROJECT_ID: ${{ inputs.para_project_id }}
           PACK_FORMAT: ${{ inputs.para_pack_format }}
@@ -79,4 +93,7 @@ jobs:
             pack_directory = 'workdir'
             zip_spec_conformance_level = 'balanced'
             never_store_squash_times = true
-            output_file_path = 'pack.zip'
+            output_file_path = '${{ github.repository }}-TestPack.zip'
+      - name: 執行 - 上傳資源包至 R2
+        run: |
+          s3cmd put ${{ github.repository }}-TestPack.zip s3://${{ secrets.r2_bucket_name }}/modpack/${{ github.repository }}/
