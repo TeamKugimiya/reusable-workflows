@@ -15,6 +15,7 @@ package-mode = false
 python = "^3.12"
 loguru = "0.7.3"
 pooch = "1.8.2"
+paratranz-py = {git = "https://github.com/TeamKugimiya/paratranz-py.git"}
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
