@@ -4,15 +4,11 @@ import json
 import shutil
 from pathlib import Path
 from loguru import logger
-from pooch import retrieve, HTTPDownloader, Unzip
+
+from paratranz_py import ParaTranz
 
 PROJECT_ID = os.getenv("PROJECT_ID")
 AUTH_TOKEN = os.getenv("AUTH_TOKEN")
-API_URL = f"https://paratranz.cn/api/projects/{PROJECT_ID}/artifacts/download"
-HEADERS = {
-    "Authorization": f"{AUTH_TOKEN}",
-    "User-Agent": "GitHub Action Script | Made by @xMikux"
-}
 
 DATA_PATH = Path("data")
 WORKDIR = Path("workdir")
@@ -37,18 +33,10 @@ def para_download():
     下載並解壓縮資料
     - 從 ParaTranz 下載資料並解壓縮到 data 資料夾
     """
-    try:
-        logger.info(f"Downloading artifact and extract to {DATA_PATH.absolute()}...")
-        retrieve(
-            API_URL,
-            known_hash=None,
-            processor=Unzip(extract_dir=DATA_PATH.absolute()),
-            downloader=HTTPDownloader(headers=HEADERS)
-        )
-        logger.success("Download Success!")
-    except Exception as e:
-        logger.error(f"Download Failed! Error: {str(e)}")
-        sys.exit(1)
+    para = ParaTranz(AUTH_TOKEN)
+
+    logger.info(f"Downloading artifact and extract to {DATA_PATH.absolute()}...")
+    para.artifacts.download_artifacts(PROJECT_ID, extract_path=DATA_PATH)
 
 def move_assets_folder():
     """
