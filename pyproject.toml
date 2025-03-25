@@ -10,7 +10,7 @@ package-mode = false
 python = "^3.12"
 loguru = "^0.7.3"
 requests = "2.32.3"
-pytz = "2025.1"
+pytz = "2025.2"
 paratranz-py = {git = "https://github.com/TeamKugimiya/paratranz-py.git"}
 
 [build-system]
