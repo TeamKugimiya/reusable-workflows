@@ -55,7 +55,7 @@ jobs:
       - name: 設定 - Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
       - name: 設定 - Poetry
         uses: snok/install-poetry@v1
         with:
