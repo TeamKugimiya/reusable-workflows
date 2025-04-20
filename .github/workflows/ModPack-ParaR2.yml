@@ -46,7 +46,7 @@ jobs:
         id: set_project_name
         run: echo "project_name=$(echo ${{ github.repository }} | sed 's/^TeamKugimiya\///')" >> "$GITHUB_OUTPUT"
       - name: 設定 - s3cmd
-        uses: s3-actions/s3cmd@v1.10.0
+        uses: s3-actions/s3cmd@v2.0.0
         with:
           provider: cloudflare
           account_id: ${{ secrets.r2_account_id }}
