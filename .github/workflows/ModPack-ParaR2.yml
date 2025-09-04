@@ -53,7 +53,7 @@ jobs:
           access_key: ${{ secrets.r2_access_key }}
           secret_key: ${{ secrets.r2_secret_key }}
       - name: 設定 - Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: 設定 - Poetry
