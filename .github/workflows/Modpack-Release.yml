@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: 查看專案
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 變數替換
         id: var

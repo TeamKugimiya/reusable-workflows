@@ -33,10 +33,10 @@ jobs:
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout Repository - Reusable Workflows
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TeamKugimiya/reusable-workflows
           ref: ${{ env.reusable_workflows_ref }}
@@ -108,10 +108,10 @@ jobs:
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout Repository - Reusable Workflows
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TeamKugimiya/reusable-workflows
           ref: ${{ env.reusable_workflows_ref }}
@@ -180,10 +180,10 @@ jobs:
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout Repository - Reusable Workflows
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TeamKugimiya/reusable-workflows
           ref: ${{ env.reusable_workflows_ref }}
@@ -288,10 +288,10 @@ jobs:
     steps:
       ### Checkout Main and Reusable Workflows ###
       - name: Checkout Repository - Main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout Repository - Reusable Workflows
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TeamKugimiya/reusable-workflows
           ref: ${{ env.reusable_workflows_ref }}
@@ -359,7 +359,7 @@ jobs:
           git init
 
       - name: Checkout Repository - Reusable Workflows
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TeamKugimiya/reusable-workflows
           ref: ${{ env.reusable_workflows_ref }}
