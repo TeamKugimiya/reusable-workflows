@@ -55,7 +55,7 @@ jobs:
 
       - name: Cache - Poetry Installation
         id: poetry_installation_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.local
           key: ${{ env.poetry_installation_cache_key }}
@@ -71,7 +71,7 @@ jobs:
 
       - name: Cache - Poetry Dependencies
         id: poetry_dependencies_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
@@ -93,7 +93,7 @@ jobs:
 
       - name: Cache - ParaTranz
         id: para_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .cache/paratranz_cache.txt
           key: paratranz_cache-${{ hashFiles('.cache/paratranz_cache.txt') }}
@@ -130,7 +130,7 @@ jobs:
 
       - name: Cache - Poetry Installation
         id: poetry_installation_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.local
           key: ${{ env.poetry_installation_cache_key }}
@@ -146,7 +146,7 @@ jobs:
 
       - name: Cache - Poetry Dependencies
         id: poetry_dependencies_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
@@ -202,7 +202,7 @@ jobs:
 
       - name: Cache - Poetry Installation
         id: poetry_installation_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.local
           key: ${{ env.poetry_installation_cache_key }}
@@ -218,7 +218,7 @@ jobs:
 
       - name: Cache - Poetry Dependencies
         id: poetry_dependencies_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
@@ -248,7 +248,7 @@ jobs:
 
       - name: Cache - Restore Files Hash
         id: cache_files_hash_restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: .cache/paratranz_files_cache.json
           key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_files_cache.json') }}
@@ -262,7 +262,7 @@ jobs:
           poetry run python $GITHUB_WORKSPACE/.github/reusable-workflows/para-scripts/05_paratranz_datefixer.py
 
       - name: Cache - Save Files Hash
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: .cache/paratranz_files_cache.json
           key: paratranz_files_cache-${{ hashFiles('.cache/paratranz_files_cache.json') }}
@@ -310,7 +310,7 @@ jobs:
 
       - name: Cache - Poetry Installation
         id: poetry_installation_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.local
           key: ${{ env.poetry_installation_cache_key }}
@@ -326,7 +326,7 @@ jobs:
 
       - name: Cache - Poetry Dependencies
         id: poetry_dependencies_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
@@ -378,7 +378,7 @@ jobs:
 
       - name: Cache - Poetry Installation
         id: poetry_installation_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.local
           key: ${{ env.poetry_installation_cache_key }}
@@ -394,7 +394,7 @@ jobs:
 
       - name: Cache - Poetry Dependencies
         id: poetry_dependencies_cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock') }}
