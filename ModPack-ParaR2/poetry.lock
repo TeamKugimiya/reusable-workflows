@@ -213,14 +213,14 @@ type = ["mypy (>=1.11.2)"]
 
 [[package]]
 name = "pooch"
-version = "1.8.2"
+version = "1.9.0"
 description = "A friend to fetch your data files"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "pooch-1.8.2-py3-none-any.whl", hash = "sha256:3529a57096f7198778a5ceefd5ac3ef0e4d06a6ddaf9fc2d609b806f25302c47"},
-    {file = "pooch-1.8.2.tar.gz", hash = "sha256:76561f0de68a01da4df6af38e9955c4c9d1a5c90da73f7e40276a5728ec83d10"},
+    {file = "pooch-1.9.0-py3-none-any.whl", hash = "sha256:f265597baa9f760d25ceb29d0beb8186c243d6607b0f60b83ecf14078dbc703b"},
+    {file = "pooch-1.9.0.tar.gz", hash = "sha256:de46729579b9857ffd3e741987a2f6d5e0e03219892c167c6578c0091fb511ed"},
 ]
 
 [package.dependencies]
@@ -231,6 +231,7 @@ requests = ">=2.19.0"
 [package.extras]
 progress = ["tqdm (>=4.41.0,<5.0.0)"]
 sftp = ["paramiko (>=2.7.0)"]
+test = ["pytest-httpserver", "pytest-localftpserver"]
 xxhash = ["xxhash (>=1.4.3)"]
 
 [[package]]
@@ -292,4 +293,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "0d5b214bf3e94c4c9152f30ce0e1ac2d399156267cd7d083989f6fad1ae64f7e"
+content-hash = "f7e6c29130972e1df89e55e311f21d17e56199b1133a7a0553765f1602ff0650"
