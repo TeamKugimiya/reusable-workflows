@@ -98,7 +98,7 @@ jobs:
             ${{ steps.force_include.outputs.data }}
 
       - name: 下載壓縮檔
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: Optimized pack
           path: ./

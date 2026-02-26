@@ -273,7 +273,7 @@ jobs:
           tar -zcvf MultiVersions-Archive.tar.gz MultiVersions
 
       - name: GitHub - Upload Translate Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ParaTranslateSource
           path: .workdir/MultiVersions-Archive.tar.gz
@@ -408,7 +408,7 @@ jobs:
 
       ### Start Script ###
       - name: GitHub - Download Translate Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ParaTranslateSource
 
@@ -464,7 +464,7 @@ jobs:
           echo "today_dash=$TODAY_DASH" >> "$GITHUB_OUTPUT"
 
       - name: GitHub - Download ParaTranslationPack
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ParaTranslationPack-${{ matrix.mc_version }}
 
