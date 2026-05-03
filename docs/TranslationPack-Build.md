@@ -32,5 +32,9 @@ jobs:
     uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Build.yml@v1
     with:
       pack_name: <值>
-    secrets: inherit
+    secrets:
+      toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}
 ```
+
+> 上例使用顯式傳遞，需在呼叫端 repo 的 *Settings → Secrets and variables → Actions* 建立同名 secret。
+> 若呼叫端與被呼叫端在同 organization 且已設定 organization secret，也可改寫成 `secrets: inherit` 一次帶入全部。

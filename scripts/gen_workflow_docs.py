@@ -142,8 +142,16 @@ def render_doc(wf: dict[str, Any]) -> str:
     for key in required_inputs or list(wf["inputs"].keys())[:1]:
         lines.append(f"      {key}: <值>")
     if wf["secrets"]:
-        lines.append("    secrets: inherit")
+        lines.append("    secrets:")
+        for key in wf["secrets"].keys():
+            lines.append(f"      {key}: ${{{{ secrets.{key.upper()} }}}}")
     lines += ["```", ""]
+    if wf["secrets"]:
+        lines += [
+            "> 上例使用顯式傳遞，需在呼叫端 repo 的 *Settings → Secrets and variables → Actions* 建立同名 secret。",
+            "> 若呼叫端與被呼叫端在同 organization 且已設定 organization secret，也可改寫成 `secrets: inherit` 一次帶入全部。",
+            "",
+        ]
     return "\n".join(lines)
 
 
