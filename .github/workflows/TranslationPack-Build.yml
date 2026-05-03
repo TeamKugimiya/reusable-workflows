@@ -59,15 +59,15 @@ jobs:
           chmod +x /usr/local/bin/translation-tool-linux-amd64
           mv /usr/local/bin/translation-tool-linux-amd64 /usr/local/bin/translation-tool
 
-      - name: 安裝 PackSquash（可選）
+      - name: 安裝 PackSquash
         if: ${{ inputs.use_packsquash }}
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download --repo ComunidadAylas/PackSquash \
-            --pattern '*linux*x86_64*.zip' --dir /tmp/packsquash
-          unzip -j /tmp/packsquash/*.zip packsquash -d /usr/local/bin
+            --pattern 'packsquash-x86_64-unknown-linux-gnu.zip' --dir /tmp/packsquash
+          unzip -j /tmp/packsquash/packsquash-x86_64-unknown-linux-gnu.zip packsquash -d /usr/local/bin
           chmod +x /usr/local/bin/packsquash
 
       - name: 建構翻譯資源包
@@ -78,9 +78,33 @@ jobs:
             ${{ inputs.version_group != '' && format('--version {0}', inputs.version_group) || '' }}
 
       - name: 上傳翻譯資源包
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ inputs.pack_name }}-${{ github.run_number }}
-          path: ${{ inputs.output_path }}/*.zip
-          if-no-files-found: error
-          retention-days: ${{ inputs.artifact_retention_days }}
+        env:
+          OUTPUT_PATH: ${{ inputs.output_path }}
+          RETENTION_DAYS: ${{ inputs.artifact_retention_days }}
+        run: |
+          set -euo pipefail
+          workdir=$(mktemp -d)
+          cd "$workdir"
+          npm init -y >/dev/null
+          npm install --silent @actions/artifact@^6.2.0
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const { DefaultArtifactClient } = require('@actions/artifact');
+          (async () => {
+            const dir = path.resolve(process.env.GITHUB_WORKSPACE, process.env.OUTPUT_PATH);
+            const retention = Number(process.env.RETENTION_DAYS);
+            const zips = fs.readdirSync(dir).filter(f => f.endsWith('.zip'));
+            if (zips.length === 0) {
+              console.error(`::error::找不到任何 zip 檔案於 ${dir}`);
+              process.exit(1);
+            }
+            const client = new DefaultArtifactClient();
+            for (const zip of zips) {
+              const full = path.join(dir, zip);
+              console.log(`::group::上傳 ${zip}`);
+              await client.uploadArtifact(zip, [full], dir, { retentionDays: retention, skipArchive: true });
+              console.log('::endgroup::');
+            }
+          })().catch(e => { console.error(e); process.exit(1); });
+          EOF
