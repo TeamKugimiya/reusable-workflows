@@ -86,25 +86,25 @@ jobs:
           workdir=$(mktemp -d)
           cd "$workdir"
           npm init -y >/dev/null
+          npm pkg set type=module >/dev/null
           npm install --silent @actions/artifact@^6.2.0
-          node <<'EOF'
-          const fs = require('fs');
-          const path = require('path');
-          const { DefaultArtifactClient } = require('@actions/artifact');
-          (async () => {
-            const dir = path.resolve(process.env.GITHUB_WORKSPACE, process.env.OUTPUT_PATH);
-            const retention = Number(process.env.RETENTION_DAYS);
-            const zips = fs.readdirSync(dir).filter(f => f.endsWith('.zip'));
-            if (zips.length === 0) {
-              console.error(`::error::找不到任何 zip 檔案於 ${dir}`);
-              process.exit(1);
-            }
-            const client = new DefaultArtifactClient();
-            for (const zip of zips) {
-              const full = path.join(dir, zip);
-              console.log(`::group::上傳 ${zip}`);
-              await client.uploadArtifact(zip, [full], dir, { retentionDays: retention, skipArchive: true });
-              console.log('::endgroup::');
-            }
-          })().catch(e => { console.error(e); process.exit(1); });
+          cat > upload.mjs <<'EOF'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { DefaultArtifactClient } from '@actions/artifact';
+          const dir = path.resolve(process.env.GITHUB_WORKSPACE, process.env.OUTPUT_PATH);
+          const retention = Number(process.env.RETENTION_DAYS);
+          const zips = fs.readdirSync(dir).filter(f => f.endsWith('.zip'));
+          if (zips.length === 0) {
+            console.error(`::error::找不到任何 zip 檔案於 ${dir}`);
+            process.exit(1);
+          }
+          const client = new DefaultArtifactClient();
+          for (const zip of zips) {
+            const full = path.join(dir, zip);
+            console.log(`::group::上傳 ${zip}`);
+            await client.uploadArtifact(zip, [full], dir, { retentionDays: retention, skipArchive: true });
+            console.log('::endgroup::');
+          }
           EOF
+          node upload.mjs
