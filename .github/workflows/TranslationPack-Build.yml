@@ -14,11 +14,6 @@ on:
         type: string
         default: ""
         description: "指定要建構的版本群組（translation-tool 的 --version），留空則建置全部"
-      output_path:
-        required: false
-        type: string
-        default: "./output"
-        description: "輸出資料夾，預設為 ``./output``"
       runs_on:
         required: false
         type: string
@@ -46,6 +41,8 @@ jobs:
   build-packs:
     name: 建構翻譯資源包
     runs-on: ${{ inputs.runs_on }}
+    outputs:
+      zip_files: ${{ steps.collect.outputs.zip_files }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -74,37 +71,45 @@ jobs:
         run: |
           translation-tool build \
             --name "${{ inputs.pack_name }}" \
-            --output "${{ inputs.output_path }}" \
             ${{ inputs.version_group != '' && format('--version {0}', inputs.version_group) || '' }}
 
-      - name: 上傳翻譯資源包
-        env:
-          OUTPUT_PATH: ${{ inputs.output_path }}
-          RETENTION_DAYS: ${{ inputs.artifact_retention_days }}
+      - name: 收集 zip 清單
+        id: collect
         run: |
-          set -euo pipefail
-          workdir=$(mktemp -d)
-          cd "$workdir"
-          npm init -y >/dev/null
-          npm pkg set type=module >/dev/null
-          npm install --silent @actions/artifact@^6.2.0
-          cat > upload.mjs <<'EOF'
-          import fs from 'node:fs';
-          import path from 'node:path';
-          import { DefaultArtifactClient } from '@actions/artifact';
-          const dir = path.resolve(process.env.GITHUB_WORKSPACE, process.env.OUTPUT_PATH);
-          const retention = Number(process.env.RETENTION_DAYS);
-          const zips = fs.readdirSync(dir).filter(f => f.endsWith('.zip'));
-          if (zips.length === 0) {
-            console.error(`::error::找不到任何 zip 檔案於 ${dir}`);
-            process.exit(1);
-          }
-          const client = new DefaultArtifactClient();
-          for (const zip of zips) {
-            const full = path.join(dir, zip);
-            console.log(`::group::上傳 ${zip}`);
-            await client.uploadArtifact(zip, [full], dir, { retentionDays: retention, skipArchive: true });
-            console.log('::endgroup::');
-          }
-          EOF
-          node upload.mjs
+          files=$(find ./output -maxdepth 1 -type f -name '*.zip' -printf '%f\n' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          if [ "$files" = "[]" ]; then
+            echo "::error::找不到任何 zip 檔案於 ./output"
+            exit 1
+          fi
+          echo "zip_files=$files" >> "$GITHUB_OUTPUT"
+
+      - name: 暫存建構結果
+        uses: actions/upload-artifact@v7
+        with:
+          name: __build-output-${{ github.run_id }}
+          path: ./output/*.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  upload-packs:
+    name: 上傳翻譯資源包（${{ matrix.zip }}）
+    needs: build-packs
+    runs-on: ${{ inputs.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        zip: ${{ fromJson(needs.build-packs.outputs.zip_files) }}
+    steps:
+      - name: 下載暫存建構結果
+        uses: actions/download-artifact@v6
+        with:
+          name: __build-output-${{ github.run_id }}
+          path: ./dist
+
+      - name: 上傳 ${{ matrix.zip }}
+        uses: actions/upload-artifact@v7
+        with:
+          path: ./dist/${{ matrix.zip }}
+          archive: false
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days }}
