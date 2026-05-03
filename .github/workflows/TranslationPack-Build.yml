@@ -101,7 +101,7 @@ jobs:
         zip: ${{ fromJson(needs.build-packs.outputs.zip_files) }}
     steps:
       - name: 下載暫存建構結果
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: __build-output-${{ github.run_id }}
           path: ./dist
