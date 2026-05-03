@@ -34,6 +34,10 @@ on:
         type: boolean
         default: true
         description: "是否安裝 PackSquash 進行最佳化壓縮，失敗時會自動 fallback 至標準 zip"
+    secrets:
+      toolkit_token:
+        required: true
+        description: "用於下載私人 translation-toolkit release 的 PAT（需 ``repo`` 權限）"
 
 permissions:
   contents: read
@@ -48,7 +52,7 @@ jobs:
 
       - name: 下載 translation-tool
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.toolkit_token }}
         run: |
           gh release download --repo TeamKugimiya/translation-toolkit \
             --pattern 'translation-tool-linux-amd64' --dir /usr/local/bin

@@ -20,7 +20,9 @@
 
 ## Secrets
 
-_無_
+| 名稱 | 必填 | 說明 |
+| --- | --- | --- |
+| `toolkit_token` | ✅ | 用於下載私人 translation-toolkit release 的 PAT（需 ``repo`` 權限） |
 
 ## 使用範例
 
@@ -30,4 +32,5 @@ jobs:
     uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Build.yml@v1
     with:
       pack_name: <值>
+    secrets: inherit
 ```
