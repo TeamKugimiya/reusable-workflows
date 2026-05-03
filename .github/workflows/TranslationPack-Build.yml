@@ -1,0 +1,82 @@
+# summary: 透過 translation-toolkit 建構翻譯資源包並上傳為 Artifact
+# category: 翻譯包
+name: 翻譯包｜建構
+
+on:
+  workflow_call:
+    inputs:
+      pack_name:
+        required: true
+        type: string
+        description: "翻譯包名稱，對應 translation-tool 的 --name，例如 ``ModsTranslationPack`` 或 ``ParaTranslationPack``"
+      version_group:
+        required: false
+        type: string
+        default: ""
+        description: "指定要建構的版本群組（translation-tool 的 --version），留空則建置全部"
+      output_path:
+        required: false
+        type: string
+        default: "./output"
+        description: "輸出資料夾，預設為 ``./output``"
+      runs_on:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+        description: "執行環境，預設為 ``ubuntu-latest``"
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 3
+        description: "Artifact 保留天數，預設為 ``3``"
+      use_packsquash:
+        required: false
+        type: boolean
+        default: true
+        description: "是否安裝 PackSquash 進行最佳化壓縮，失敗時會自動 fallback 至標準 zip"
+
+permissions:
+  contents: read
+
+jobs:
+  build-packs:
+    name: 建構翻譯資源包
+    runs-on: ${{ inputs.runs_on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: 下載 translation-tool
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo TeamKugimiya/translation-toolkit \
+            --pattern 'translation-tool-linux-amd64' --dir /usr/local/bin
+          chmod +x /usr/local/bin/translation-tool-linux-amd64
+          mv /usr/local/bin/translation-tool-linux-amd64 /usr/local/bin/translation-tool
+
+      - name: 安裝 PackSquash（可選）
+        if: ${{ inputs.use_packsquash }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo ComunidadAylas/PackSquash \
+            --pattern '*linux*x86_64*.zip' --dir /tmp/packsquash
+          unzip -j /tmp/packsquash/*.zip packsquash -d /usr/local/bin
+          chmod +x /usr/local/bin/packsquash
+
+      - name: 建構翻譯資源包
+        run: |
+          translation-tool build \
+            --name "${{ inputs.pack_name }}" \
+            --output "${{ inputs.output_path }}" \
+            ${{ inputs.version_group != '' && format('--version {0}', inputs.version_group) || '' }}
+
+      - name: 上傳翻譯資源包
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.pack_name }}-${{ github.run_number }}
+          path: ${{ inputs.output_path }}/*.zip
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days }}

@@ -1,0 +1,31 @@
+# summary: 檢查 docs/ 與 README 索引是否與 workflow 定義同步（內部 CI，非 reusable）
+# category: 內部 CI
+name: Docs Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**.yml"
+      - "docs/**.md"
+      - "scripts/gen_workflow_docs.py"
+      - "README.md"
+  pull_request:
+    paths:
+      - ".github/workflows/**.yml"
+      - "docs/**.md"
+      - "scripts/gen_workflow_docs.py"
+      - "README.md"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - run: uv run scripts/gen_workflow_docs.py --check
