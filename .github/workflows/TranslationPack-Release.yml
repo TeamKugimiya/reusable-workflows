@@ -105,6 +105,7 @@ jobs:
         with:
           name: ${{ inputs.artifact_pattern }}
           path: ${{ inputs.artifact_path }}
+          skip-decompress: true
 
       - name: 下載符合 pattern 的建構 Artifact
         if: ${{ contains(inputs.artifact_pattern, '*') || contains(inputs.artifact_pattern, '?') }}
@@ -113,6 +114,7 @@ jobs:
           pattern: ${{ inputs.artifact_pattern }}
           path: ${{ inputs.artifact_path }}
           merge-multiple: true
+          skip-decompress: true
 
       - name: 收集發佈檔案
         id: files
