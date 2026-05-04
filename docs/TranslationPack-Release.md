@@ -12,7 +12,7 @@
 | 名稱 | 型別 | 必填 | 預設 | 說明 |
 | --- | --- | --- | --- | --- |
 | `version` | `string` | — | `1.21` | Minecraft 版本，例如 ``1.21`` |
-| `artifact_pattern` | `string` | — | `*.zip` | 要下載的 build Artifact pattern；搭配 ``翻譯包｜建構`` 時可使用其 ``artifact_pattern`` output |
+| `artifact_pattern` | `string` | — | `*.zip` | 要下載的 build Artifact 名稱或 pattern；matrix 發佈時可傳入 ``release_targets[].zip``，批次發佈時可使用 ``*.zip`` |
 | `artifact_path` | `string` | — | `./dist` | 下載 Artifact 的目標目錄 |
 | `release_name` | `string` | — | — | Modrinth / CurseForge 顯示的版本名稱，留空則交由 mc-publish 推斷 |
 | `release_version` | `string` | — | — | Modrinth / CurseForge 的版本號，留空則使用 ``version`` |

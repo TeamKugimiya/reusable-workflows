@@ -14,7 +14,7 @@ on:
         required: false
         type: string
         default: "*.zip"
-        description: "要下載的 build Artifact pattern；搭配 ``翻譯包｜建構`` 時可使用其 ``artifact_pattern`` output"
+        description: "要下載的 build Artifact 名稱或 pattern；matrix 發佈時可傳入 ``release_targets[].zip``，批次發佈時可使用 ``*.zip``"
       artifact_path:
         required: false
         type: string
@@ -99,7 +99,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 下載建構 Artifact
+      - name: 下載指定建構 Artifact
+        if: ${{ !contains(inputs.artifact_pattern, '*') && !contains(inputs.artifact_pattern, '?') }}
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact_pattern }}
+          path: ${{ inputs.artifact_path }}
+
+      - name: 下載符合 pattern 的建構 Artifact
+        if: ${{ contains(inputs.artifact_pattern, '*') || contains(inputs.artifact_pattern, '?') }}
         uses: actions/download-artifact@v8
         with:
           pattern: ${{ inputs.artifact_pattern }}
@@ -117,6 +125,7 @@ jobs:
 
           if [ ! -s release-files.txt ]; then
             echo "::error::找不到任何 zip 檔案於 $ARTIFACT_PATH"
+            find "$ARTIFACT_PATH" -maxdepth 4 -print || true
             exit 1
           fi
 
