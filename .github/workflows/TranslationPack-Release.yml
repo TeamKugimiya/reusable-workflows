@@ -1,0 +1,305 @@
+# summary: 下載翻譯資源包 Artifact 並發佈至 Anvil、Modrinth 與 CurseForge
+# category: 翻譯包
+name: 翻譯包｜發佈
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: false
+        type: string
+        default: "1.21"
+        description: "Minecraft 版本，例如 ``1.21``"
+      artifact_pattern:
+        required: false
+        type: string
+        default: "*.zip"
+        description: "要下載的 build Artifact pattern；搭配 ``翻譯包｜建構`` 時可使用其 ``artifact_pattern`` output"
+      artifact_path:
+        required: false
+        type: string
+        default: "./dist"
+        description: "下載 Artifact 的目標目錄"
+      release_name:
+        required: false
+        type: string
+        default: ""
+        description: "Modrinth / CurseForge 顯示的版本名稱，留空則交由 mc-publish 推斷"
+      release_version:
+        required: false
+        type: string
+        default: ""
+        description: "Modrinth / CurseForge 的版本號，留空則使用 ``version``"
+      game_versions:
+        required: false
+        type: string
+        default: ""
+        description: "Modrinth / CurseForge Minecraft versions，多行字串；建議由建構 workflow 的 ``release_targets[].game_versions`` 傳入，留空則使用 ``version``"
+      modrinth_id:
+        required: false
+        type: string
+        default: ""
+        description: "Modrinth 專案 ID；留空則不發佈 Modrinth"
+      curseforge_id:
+        required: false
+        type: string
+        default: ""
+        description: "CurseForge 專案 ID；留空則不發佈 CurseForge"
+      project_id:
+        required: false
+        type: string
+        default: ""
+        description: "Anvil project_id，例如 ``modstranslationpack`` 或 ``paratranslationpack``；留空則不發佈 Anvil"
+      anvil_base:
+        required: false
+        type: string
+        default: "https://anvil.teamkugimiya.org/v1"
+        description: "Anvil API base URL"
+      commit_fallback_count:
+        required: false
+        type: number
+        default: 20
+        description: "找不到 ``ci_latest`` tag 時，changelog / Anvil commits 擷取最近幾個 commits"
+      runs_on:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+        description: "執行環境，預設為 ``ubuntu-latest``"
+    secrets:
+      anvil_api_token:
+        required: false
+        description: "Anvil API token；設定 ``project_id`` 時必填"
+      modrinth_token:
+        required: false
+        description: "Modrinth API token；設定 ``modrinth_id`` 時必填"
+      curseforge_token:
+        required: false
+        description: "CurseForge API token；設定 ``curseforge_id`` 時必填"
+    outputs:
+      zip_files:
+        description: "本次發佈的 zip 檔案 JSON array"
+        value: ${{ jobs.release.outputs.zip_files }}
+      anvil_builds:
+        description: "Anvil 回傳的 build JSON array；未發佈 Anvil 時為 ``[]``"
+        value: ${{ jobs.release.outputs.anvil_builds }}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 發佈翻譯資源包
+    runs-on: ${{ inputs.runs_on }}
+    outputs:
+      zip_files: ${{ steps.files.outputs.zip_files }}
+      anvil_builds: ${{ steps.anvil.outputs.builds || '[]' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 下載建構 Artifact
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.artifact_pattern }}
+          path: ${{ inputs.artifact_path }}
+          merge-multiple: true
+
+      - name: 收集發佈檔案
+        id: files
+        env:
+          ARTIFACT_PATH: ${{ inputs.artifact_path }}
+        run: |
+          set -euo pipefail
+
+          find "$ARTIFACT_PATH" -type f -name '*.zip' -print | sort > release-files.txt
+
+          if [ ! -s release-files.txt ]; then
+            echo "::error::找不到任何 zip 檔案於 $ARTIFACT_PATH"
+            exit 1
+          fi
+
+          jq -R -s -c 'split("\n") | map(select(length > 0))' release-files.txt > release-files.json
+
+          {
+            echo "files<<EOF"
+            cat release-files.txt
+            echo "EOF"
+            echo "zip_files=$(cat release-files.json)"
+          } >> "$GITHUB_OUTPUT"
+
+          cat release-files.txt
+
+      - name: 產生 commits 與 changelog
+        id: changelog
+        env:
+          COMMIT_FALLBACK_COUNT: ${{ inputs.commit_fallback_count }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          last_tag=$(git describe --tags --match ci_latest --abbrev=0 HEAD 2>/dev/null || true)
+
+          if [ -z "$last_tag" ]; then
+            git log -n "$COMMIT_FALLBACK_COUNT" --pretty=format:'%H%x1f%aI%x1f%s%x1e' HEAD
+          else
+            git log --pretty=format:'%H%x1f%aI%x1f%s%x1e' "${last_tag}..HEAD"
+          fi | jq -Rs '
+            split("\u001e")
+            | map(select(length > 0))
+            | map(split("\u001f") | {sha: .[0], time: .[1], message: .[2]})
+          ' > commits.json
+
+          jq -r '
+            def sections:
+              [
+                {type: "mods_feat", section: "⚡ 新增模組翻譯"},
+                {type: "mods_update", section: "🐌 更新模組翻譯"},
+                {type: "mods_fix", section: "🐛 修正模組翻譯錯誤"},
+                {type: "mods_improve", section: "✨ 提升模組翻譯品質"},
+                {type: "mods_localize", section: "🌐 用語在地化"},
+                {type: "mods_remove", section: "🧭 移除翻譯"}
+              ];
+            def repo_url: env.GITHUB_SERVER_URL + "/" + env.GITHUB_REPOSITORY;
+            def link_refs:
+              gsub("(?<prefix>^|[^A-Za-z0-9_/#])#(?<num>[0-9]+)"; "\(.prefix)[#\(.num)](\(repo_url)/issues/\(.num))");
+            def commit_link:
+              "[`\(.sha[0:7])`](\(repo_url)/commit/\(.sha))";
+            def format_item:
+              (.subject | link_refs) as $subject
+              | if (.scope // "") == "" then
+                  "- \($subject) (\(commit_link))"
+                else
+                  "- **\(.scope)**：\($subject) (\(commit_link))"
+                end;
+            def parse_commit:
+              . as $commit
+              | ($commit.message | capture("^(?<type>[A-Za-z0-9_-]+)(\\((?<scope>[^)]*)\\))?(!)?:\\s*(?<subject>.+)$")?) as $match
+              | if $match == null then empty else $commit + {type: $match.type, scope: ($match.scope // ""), subject: $match.subject} end;
+
+            [.[] | parse_commit] as $commits
+            | (sections | map(.type)) as $known_types
+            | [
+                sections[] as $section
+                | [$commits[] | select(.type == $section.type)] as $items
+                | select($items | length > 0)
+                | "## \($section.section)\n" + ($items | map(format_item) | join("\n")) + "\n"
+              ] + [
+                [$commits[] | select(.type as $type | $known_types | index($type) | not)] as $items
+                | select($items | length > 0)
+                | "## 其他變更\n" + ($items | map(format_item) | join("\n")) + "\n"
+              ]
+            | .[]
+          ' commits.json > release-changelog.md
+          if [ ! -s release-changelog.md ]; then
+            echo "此版本沒有玩家可見的翻譯變更。" > release-changelog.md
+          fi
+
+          echo "commits_file=${GITHUB_WORKSPACE}/commits.json" >> "$GITHUB_OUTPUT"
+          echo "changelog_file=${GITHUB_WORKSPACE}/release-changelog.md" >> "$GITHUB_OUTPUT"
+          cat release-changelog.md
+
+      - name: 發佈至 Modrinth / CurseForge
+        id: publish
+        if: ${{ inputs.modrinth_id != '' || inputs.curseforge_id != '' }}
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ inputs.modrinth_id }}
+          modrinth-unfeature-mode: subset
+          modrinth-token: ${{ secrets.modrinth_token }}
+
+          curseforge-id: ${{ inputs.curseforge_id }}
+          curseforge-token: ${{ secrets.curseforge_token }}
+
+          files: ${{ steps.files.outputs.files }}
+          name: ${{ inputs.release_name }}
+          version: ${{ inputs.release_version != '' && inputs.release_version || inputs.version }}
+          version-type: release
+          changelog-file: ${{ steps.changelog.outputs.changelog_file }}
+          loaders: minecraft
+          game-versions: ${{ inputs.game_versions != '' && inputs.game_versions || inputs.version }}
+
+      - name: 發佈至 Anvil
+        id: anvil
+        if: ${{ inputs.project_id != '' }}
+        env:
+          ANVIL_API_TOKEN: ${{ secrets.anvil_api_token }}
+          ANVIL_BASE: ${{ inputs.anvil_base }}
+          COMMITS_FILE: ${{ steps.changelog.outputs.commits_file }}
+          CURSEFORGE_URL: ${{ steps.publish.outputs.curseforge-url }}
+          MODRINTH_URL: ${{ steps.publish.outputs.modrinth-url }}
+          MODRINTH_VERSION_ID: ${{ steps.publish.outputs.modrinth-version }}
+          PROJECT_ID: ${{ inputs.project_id }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          builds='[]'
+
+          while IFS= read -r zip_file; do
+            sha512=$(sha512sum "$zip_file" | awk '{print $1}')
+            uploaded=false
+
+            for attempt in 1 2 3; do
+              commits_payload=$(cat "$COMMITS_FILE")
+              curl_args=(
+                -sS -o response.json -w "%{http_code}"
+                -X POST "${ANVIL_BASE}/projects/${PROJECT_ID}/versions/${VERSION}/builds"
+                -H "Authorization: Bearer ${ANVIL_API_TOKEN}"
+                -F "file=@${zip_file}"
+                -F "file_sha512=${sha512}"
+                -F "commits=${commits_payload}"
+              )
+
+              if [ -n "$MODRINTH_URL" ]; then
+                curl_args+=(-F "modrinth_url=${MODRINTH_URL}")
+              fi
+              if [ -n "$MODRINTH_VERSION_ID" ]; then
+                curl_args+=(-F "modrinth_version_id=${MODRINTH_VERSION_ID}")
+              fi
+              if [ -n "$CURSEFORGE_URL" ]; then
+                curl_args+=(-F "curseforge_url=${CURSEFORGE_URL}")
+              fi
+
+              http_code=$(curl "${curl_args[@]}")
+
+              if [ "$http_code" = "201" ]; then
+                build=$(jq -r '.build // empty' response.json)
+                if [ -z "$build" ]; then
+                  echo "::error::Anvil response 缺少 build 欄位"
+                  cat response.json
+                  exit 1
+                fi
+
+                builds=$(jq -c --arg file "$zip_file" --arg build "$build" --arg sha512 "$sha512" '. + [{file: $file, build: $build, sha512: $sha512}]' <<< "$builds")
+                cat response.json
+                uploaded=true
+                break
+              fi
+
+              if [ "$http_code" = "409" ]; then
+                echo "Conflict, retry ${attempt}/3..."
+                sleep 1
+                continue
+              fi
+
+              echo "Upload failed: HTTP ${http_code}"
+              cat response.json
+              exit 1
+            done
+
+            if [ "$uploaded" != "true" ]; then
+              echo "::error::Anvil upload retries exhausted for ${zip_file}"
+              exit 1
+            fi
+          done < release-files.txt
+
+          echo "builds=${builds}" >> "$GITHUB_OUTPUT"
+
+      - name: 更新 ci_latest tag
+        if: ${{ inputs.modrinth_id != '' || inputs.curseforge_id != '' || inputs.project_id != '' }}
+        run: |
+          set -euo pipefail
+          git tag -f ci_latest
+          git push origin refs/tags/ci_latest --force

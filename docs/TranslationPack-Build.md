@@ -17,6 +17,14 @@
 | `artifact_retention_days` | `number` | — | `3` | Artifact 保留天數，預設為 ``3`` |
 | `use_packsquash` | `boolean` | — | `true` | 是否安裝 PackSquash 進行最佳化壓縮，失敗時會自動 fallback 至標準 zip |
 
+## Outputs
+
+| 名稱 | 說明 |
+| --- | --- |
+| `zip_files` | 建構出的 zip 檔名 JSON array，例如 ``["ModsTranslationPack-1.21.zip"]`` |
+| `artifact_pattern` | 發佈 workflow 可用來下載建構結果的 Artifact pattern |
+| `release_targets` | 發佈 matrix 可用的 JSON array，包含 ``zip``、``version``、``game_versions`` |
+
 ## Secrets
 
 | 名稱 | 必填 | 說明 |

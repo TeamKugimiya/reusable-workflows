@@ -74,6 +74,7 @@ def load_workflows() -> list[dict[str, Any]]:
                 "category": meta.get("category", "未分類"),
                 "inputs": (on["workflow_call"] or {}).get("inputs") or {},
                 "secrets": (on["workflow_call"] or {}).get("secrets") or {},
+                "outputs": (on["workflow_call"] or {}).get("outputs") or {},
                 "permissions": data.get("permissions") or {},
             }
         )
@@ -115,6 +116,14 @@ def render_doc(wf: dict[str, Any]) -> str:
             lines.append(
                 f"| `{key}` | `{spec.get('type', '')}` | {required} | {default} | {spec.get('description', '').strip()} |"
             )
+    else:
+        lines.append("_無_")
+    lines += ["", "## Outputs", ""]
+    if wf["outputs"]:
+        lines += ["| 名稱 | 說明 |", "| --- | --- |"]
+        for key, spec in wf["outputs"].items():
+            spec = spec or {}
+            lines.append(f"| `{key}` | {spec.get('description', '').strip()} |")
     else:
         lines.append("_無_")
     lines += ["", "## Secrets", ""]

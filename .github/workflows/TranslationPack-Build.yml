@@ -33,6 +33,16 @@ on:
       toolkit_token:
         required: true
         description: "用於下載私人 translation-toolkit release 的 PAT（需 ``repo`` 權限）"
+    outputs:
+      zip_files:
+        description: "建構出的 zip 檔名 JSON array，例如 ``[\"ModsTranslationPack-1.21.zip\"]``"
+        value: ${{ jobs.build-packs.outputs.zip_files }}
+      artifact_pattern:
+        description: "發佈 workflow 可用來下載建構結果的 Artifact pattern"
+        value: ${{ jobs.build-packs.outputs.artifact_pattern }}
+      release_targets:
+        description: "發佈 matrix 可用的 JSON array，包含 ``zip``、``version``、``game_versions``"
+        value: ${{ jobs.build-packs.outputs.release_targets }}
 
 permissions:
   contents: read
@@ -43,6 +53,8 @@ jobs:
     runs-on: ${{ inputs.runs_on }}
     outputs:
       zip_files: ${{ steps.collect.outputs.zip_files }}
+      artifact_pattern: ${{ steps.collect.outputs.artifact_pattern }}
+      release_targets: ${{ steps.collect.outputs.release_targets }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -75,13 +87,40 @@ jobs:
 
       - name: 收集 zip 清單
         id: collect
+        env:
+          PACK_NAME: ${{ inputs.pack_name }}
         run: |
+          set -euo pipefail
+
           files=$(find ./output -maxdepth 1 -type f -name '*.zip' -printf '%f\n' | jq -R -s -c 'split("\n") | map(select(length > 0))')
           if [ "$files" = "[]" ]; then
             echo "::error::找不到任何 zip 檔案於 ./output"
             exit 1
           fi
+
+          if [ ! -f ./config/minecraft_versions.json ]; then
+            echo "::error::找不到 ./config/minecraft_versions.json"
+            exit 1
+          fi
+
+          release_targets=$(jq -c --argjson files "$files" --arg pack "$PACK_NAME" '
+            . as $config
+            | $files
+            | map(
+                . as $zip
+                | ($zip | sub("\\.zip$"; "")) as $stem
+                | (if ($stem | startswith($pack + "-")) then $stem[(($pack | length) + 1):] else $stem end) as $version
+                | {
+                    zip: $zip,
+                    version: $version,
+                    game_versions: (($config.groups[$version].publish.game_versions // [$version]) | join("\n"))
+                  }
+              )
+          ' ./config/minecraft_versions.json)
+
           echo "zip_files=$files" >> "$GITHUB_OUTPUT"
+          echo "artifact_pattern=*.zip" >> "$GITHUB_OUTPUT"
+          echo "release_targets=$release_targets" >> "$GITHUB_OUTPUT"
 
       - name: 暫存建構結果
         uses: actions/upload-artifact@v7
@@ -109,6 +148,7 @@ jobs:
       - name: 上傳 ${{ matrix.zip }}
         uses: actions/upload-artifact@v7
         with:
+          name: ${{ matrix.zip }}
           path: ./dist/${{ matrix.zip }}
           archive: false
           if-no-files-found: error

@@ -15,6 +15,7 @@
 | 工作流程 | 用途 |
 | --- | --- |
 | [翻譯包｜建構](docs/TranslationPack-Build.md) | 透過 translation-toolkit 建構翻譯資源包並上傳為 Artifact |
+| [翻譯包｜發佈](docs/TranslationPack-Release.md) | 下載翻譯資源包 Artifact 並發佈至 Anvil、Modrinth 與 CurseForge |
 
 <!-- workflows:end -->
 
