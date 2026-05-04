@@ -156,11 +156,24 @@ jobs:
             git log -n "$COMMIT_FALLBACK_COUNT" --pretty=format:'%H%x1f%aI%x1f%s%x1e' HEAD
           else
             git log --pretty=format:'%H%x1f%aI%x1f%s%x1e' "${last_tag}..HEAD"
-          fi | jq -Rs '
+          fi | jq -Rsc '
             split("\u001e")
-            | map(select(length > 0))
-            | map(split("\u001f") | {sha: .[0], time: .[1], message: .[2]})
+            | map(gsub("^\\s+"; "") | select(length > 0))
+            | map(
+                split("\u001f")
+                | select(length >= 3)
+                | {sha: .[0], time: .[1], message: (.[2:] | join("\u001f"))}
+              )
           ' > commits.json
+          jq -e '
+            type == "array"
+            and all(.[];
+              ((.sha | type) == "string" and (.sha | test("^[0-9a-f]{40}$")))
+              and ((.time | type) == "string" and (.time | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T")))
+              and ((.message | type) == "string")
+            )
+          ' commits.json >/dev/null
+          jq -c . commits.json > commits.compact.json
 
           jq -r '
             def sections:
@@ -207,7 +220,7 @@ jobs:
             echo "此版本沒有玩家可見的翻譯變更。" > release-changelog.md
           fi
 
-          echo "commits_file=${GITHUB_WORKSPACE}/commits.json" >> "$GITHUB_OUTPUT"
+          echo "commits_file=${GITHUB_WORKSPACE}/commits.compact.json" >> "$GITHUB_OUTPUT"
           echo "changelog_file=${GITHUB_WORKSPACE}/release-changelog.md" >> "$GITHUB_OUTPUT"
           cat release-changelog.md
 
@@ -246,6 +259,7 @@ jobs:
         run: |
           set -euo pipefail
 
+          commits_payload=$(jq -c . "$COMMITS_FILE")
           builds='[]'
 
           while IFS= read -r zip_file; do
@@ -253,24 +267,23 @@ jobs:
             uploaded=false
 
             for attempt in 1 2 3; do
-              commits_payload=$(cat "$COMMITS_FILE")
               curl_args=(
                 -sS -o response.json -w "%{http_code}"
                 -X POST "${ANVIL_BASE}/projects/${PROJECT_ID}/versions/${VERSION}/builds"
                 -H "Authorization: Bearer ${ANVIL_API_TOKEN}"
                 -F "file=@${zip_file}"
-                -F "file_sha512=${sha512}"
-                -F "commits=${commits_payload}"
+                --form-string "file_sha512=${sha512}"
+                --form-string "commits=${commits_payload}"
               )
 
               if [ -n "$MODRINTH_URL" ]; then
-                curl_args+=(-F "modrinth_url=${MODRINTH_URL}")
+                curl_args+=(--form-string "modrinth_url=${MODRINTH_URL}")
               fi
               if [ -n "$MODRINTH_VERSION_ID" ]; then
-                curl_args+=(-F "modrinth_version_id=${MODRINTH_VERSION_ID}")
+                curl_args+=(--form-string "modrinth_version_id=${MODRINTH_VERSION_ID}")
               fi
               if [ -n "$CURSEFORGE_URL" ]; then
-                curl_args+=(-F "curseforge_url=${CURSEFORGE_URL}")
+                curl_args+=(--form-string "curseforge_url=${CURSEFORGE_URL}")
               fi
 
               http_code=$(curl "${curl_args[@]}")
