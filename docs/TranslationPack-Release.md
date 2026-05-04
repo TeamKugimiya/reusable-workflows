@@ -12,7 +12,7 @@
 | 名稱 | 型別 | 必填 | 預設 | 說明 |
 | --- | --- | --- | --- | --- |
 | `version` | `string` | — | `1.21` | Minecraft 版本，例如 ``1.21`` |
-| `artifact_pattern` | `string` | — | `*.zip` | 要下載的 build Artifact 名稱或 pattern；matrix 發佈時可傳入 ``release_targets[].zip``，批次發佈時可使用 ``*.zip`` |
+| `artifact_pattern` | `string` | — | `*.zip` | 要下載的 build Artifact 名稱或 pattern；matrix 發佈時可傳入 ``release_targets[].zip`` 並設定 ``strategy.max-parallel: 1``，批次發佈時可使用 ``*.zip`` |
 | `artifact_path` | `string` | — | `./dist` | 下載 Artifact 的目標目錄 |
 | `release_name` | `string` | — | — | Modrinth / CurseForge 顯示的版本名稱，留空則交由 mc-publish 推斷 |
 | `release_version` | `string` | — | — | Modrinth / CurseForge 的版本號，留空則使用 ``version`` |
@@ -22,6 +22,7 @@
 | `project_id` | `string` | — | — | Anvil project_id，例如 ``modstranslationpack`` 或 ``paratranslationpack``；留空則不發佈 Anvil |
 | `anvil_base` | `string` | — | `https://anvil.teamkugimiya.org/v1` | Anvil API base URL |
 | `commit_fallback_count` | `number` | — | `20` | 找不到 ``ci_latest`` tag 時，changelog / Anvil commits 擷取最近幾個 commits |
+| `update_ci_latest` | `boolean` | — | `true` | 是否在此發佈成功後更新 ``ci_latest`` tag；多版本 matrix 發佈時建議傳入 ``release_targets[].update_ci_latest``，只讓最後一個版本更新 |
 | `runs_on` | `string` | — | `ubuntu-latest` | 執行環境，預設為 ``ubuntu-latest`` |
 
 ## Outputs

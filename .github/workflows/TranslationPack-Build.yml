@@ -41,7 +41,7 @@ on:
         description: "發佈 workflow 可用來下載建構結果的 Artifact pattern"
         value: ${{ jobs.build-packs.outputs.artifact_pattern }}
       release_targets:
-        description: "發佈 matrix 可用的 JSON array，包含 ``zip``、``version``、``game_versions``"
+        description: "發佈 matrix 可用的 JSON array，包含 ``zip``、``version``、``game_versions``、``update_ci_latest``；順序依 ``config/minecraft_versions.json`` 的 ``groups`` 排列，呼叫端需搭配 ``strategy.max-parallel: 1`` 依序發佈"
         value: ${{ jobs.build-packs.outputs.release_targets }}
 
 permissions:
@@ -92,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          files=$(find ./output -maxdepth 1 -type f -name '*.zip' -printf '%f\n' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          files=$(find ./output -maxdepth 1 -type f -name '*.zip' -printf '%f\n' | sort -V | jq -R -s -c 'split("\n") | map(select(length > 0))')
           if [ "$files" = "[]" ]; then
             echo "::error::找不到任何 zip 檔案於 ./output"
             exit 1
@@ -105,6 +105,7 @@ jobs:
 
           release_targets=$(jq -c --argjson files "$files" --arg pack "$PACK_NAME" '
             . as $config
+            | ($config.groups | keys_unsorted) as $group_order
             | $files
             | map(
                 . as $zip
@@ -116,6 +117,11 @@ jobs:
                     game_versions: (($config.groups[$version].publish.game_versions // [$version]) | join("\n"))
                   }
               )
+            | sort_by([(.version as $version | ($group_order | index($version)) // 999999), .version]) as $targets
+            | [
+                range(0; $targets | length) as $i
+                | $targets[$i] + {update_ci_latest: ($i == (($targets | length) - 1))}
+              ]
           ' ./config/minecraft_versions.json)
 
           echo "zip_files=$files" >> "$GITHUB_OUTPUT"

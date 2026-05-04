@@ -23,7 +23,7 @@
 | --- | --- |
 | `zip_files` | 建構出的 zip 檔名 JSON array，例如 ``["ModsTranslationPack-1.21.zip"]`` |
 | `artifact_pattern` | 發佈 workflow 可用來下載建構結果的 Artifact pattern |
-| `release_targets` | 發佈 matrix 可用的 JSON array，包含 ``zip``、``version``、``game_versions`` |
+| `release_targets` | 發佈 matrix 可用的 JSON array，包含 ``zip``、``version``、``game_versions``、``update_ci_latest``；順序依 ``config/minecraft_versions.json`` 的 ``groups`` 排列，呼叫端需搭配 ``strategy.max-parallel: 1`` 依序發佈 |
 
 ## Secrets
 

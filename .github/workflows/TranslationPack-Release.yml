@@ -14,7 +14,7 @@ on:
         required: false
         type: string
         default: "*.zip"
-        description: "要下載的 build Artifact 名稱或 pattern；matrix 發佈時可傳入 ``release_targets[].zip``，批次發佈時可使用 ``*.zip``"
+        description: "要下載的 build Artifact 名稱或 pattern；matrix 發佈時可傳入 ``release_targets[].zip`` 並設定 ``strategy.max-parallel: 1``，批次發佈時可使用 ``*.zip``"
       artifact_path:
         required: false
         type: string
@@ -60,6 +60,11 @@ on:
         type: number
         default: 20
         description: "找不到 ``ci_latest`` tag 時，changelog / Anvil commits 擷取最近幾個 commits"
+      update_ci_latest:
+        required: false
+        type: boolean
+        default: true
+        description: "是否在此發佈成功後更新 ``ci_latest`` tag；多版本 matrix 發佈時建議傳入 ``release_targets[].update_ci_latest``，只讓最後一個版本更新"
       runs_on:
         required: false
         type: string
@@ -322,7 +327,7 @@ jobs:
           echo "builds=${builds}" >> "$GITHUB_OUTPUT"
 
       - name: 更新 ci_latest tag
-        if: ${{ inputs.modrinth_id != '' || inputs.curseforge_id != '' || inputs.project_id != '' }}
+        if: ${{ inputs.update_ci_latest && (inputs.modrinth_id != '' || inputs.curseforge_id != '' || inputs.project_id != '') }}
         run: |
           set -euo pipefail
           git tag -f ci_latest
