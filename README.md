@@ -16,6 +16,7 @@
 | --- | --- |
 | [翻譯包｜建構](docs/TranslationPack-Build.md) | 透過 translation-toolkit 建構翻譯資源包並上傳為 Artifact |
 | [翻譯包｜發佈](docs/TranslationPack-Release.md) | 下載翻譯資源包 Artifact 並發佈至 Anvil、Modrinth 與 CurseForge |
+| [翻譯包｜驗證](docs/TranslationPack-Validate.md) | 透過 translation-toolkit doctor 驗證翻譯專案健康狀態 |
 
 <!-- workflows:end -->
 
