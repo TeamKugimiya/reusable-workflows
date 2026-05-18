@@ -1,15 +1,10 @@
-# summary: 透過 translation-toolkit doctor 驗證翻譯專案健康狀態
-# category: 翻譯包
-name: 翻譯包｜驗證
+# summary: 透過 modpack-toolkit doctor 驗證模組包專案；建議在 PR 與 main push 呼叫
+# category: 模組包
+name: 模組包｜驗證
 
 on:
   workflow_call:
     inputs:
-      project_path:
-        required: false
-        type: string
-        default: "."
-        description: "翻譯專案根目錄路徑，對應 translation-tool doctor 的 ``--path``"
       format:
         required: false
         type: string
@@ -19,22 +14,17 @@ on:
         required: false
         type: boolean
         default: false
-        description: "是否啟用 ``--remote``，額外驗證遠端平台、最新版資訊與最新版 JAR 的 ``en_us.json``"
+        description: "是否啟用 ``--remote``，額外驗證上游 artifact 與 ParaTranz 遠端檔案"
       strict:
         required: false
         type: boolean
         default: false
         description: "是否啟用 ``--strict``，將 warning 也視為驗證失敗"
-      modrinth_user_agent:
-        required: false
-        type: string
-        default: ""
-        description: "遠端驗證 Modrinth 時使用的 ``MODRINTH_USER_AGENT``；留空則使用專案 ``config/settings.json`` 或工具預設"
       toolkit_version:
         required: false
         type: string
         default: ""
-        description: "要使用的 translation-toolkit release tag；留空抓 latest"
+        description: "要使用的 modpack-toolkit release tag；留空抓 latest"
       runs_on:
         required: false
         type: string
@@ -43,42 +33,43 @@ on:
     secrets:
       toolkit_token:
         required: true
-        description: "用於下載私人 translation-toolkit release 的 PAT（需 ``repo`` 權限）"
+        description: "用於下載私人 modpack-toolkit release 的 PAT（需 ``repo`` 權限）"
       curseforge_api_key:
         required: false
         description: "遠端驗證 CurseForge 專案時使用的 API key；會設定為 ``CURSEFORGE_API_KEY``"
+      paratranz_token:
+        required: false
+        description: "啟用 ``remote`` 且專案設定 ParaTranz 時使用；會設定為 ``PARATRANZ_TOKEN``"
 
 permissions:
   contents: read
 
 jobs:
   validate:
-    name: 驗證翻譯專案
+    name: 驗證模組包專案
     runs-on: ${{ inputs.runs_on }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: 安裝 translation-tool
+      - name: 安裝 modpack-toolkit
         uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
         with:
           token: ${{ secrets.toolkit_token }}
-          translation: true
           version: ${{ inputs.toolkit_version }}
 
-      - name: 驗證翻譯專案
+      - name: 驗證模組包專案
         env:
-          PROJECT_PATH: ${{ inputs.project_path }}
           DOCTOR_FORMAT: ${{ inputs.format }}
           DOCTOR_REMOTE: ${{ inputs.remote }}
           DOCTOR_STRICT: ${{ inputs.strict }}
-          MODRINTH_USER_AGENT: ${{ inputs.modrinth_user_agent }}
           CURSEFORGE_API_KEY: ${{ secrets.curseforge_api_key }}
+          PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
         shell: bash
         run: |
           set -euo pipefail
 
-          args=(doctor --path "$PROJECT_PATH" --format "$DOCTOR_FORMAT")
+          args=(doctor --format "$DOCTOR_FORMAT")
 
           if [ "$DOCTOR_REMOTE" = "true" ]; then
             args+=(--remote)
@@ -88,4 +79,4 @@ jobs:
             args+=(--strict)
           fi
 
-          translation-tool "${args[@]}"
+          modpack-toolkit "${args[@]}"

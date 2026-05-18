@@ -1,0 +1,108 @@
+# summary: 下載模組包 Artifact，預設整理為發佈候選 Artifact，填入版本時建立 GitHub Release
+# category: 模組包
+name: 模組包｜發佈
+
+on:
+  workflow_call:
+    inputs:
+      artifact_pattern:
+        required: false
+        type: string
+        default: "modpack-build-output"
+        description: "要下載的打包 Artifact 名稱或 pattern；通常使用打包 workflow 的 ``artifact_pattern`` output"
+      artifact_path:
+        required: false
+        type: string
+        default: "./dist"
+        description: "下載 Artifact 的目標目錄"
+      candidate_artifact_name:
+        required: false
+        type: string
+        default: "modpack-release-candidate"
+        description: "未填 ``version`` 時，上傳發佈候選 Artifact 使用的名稱前綴"
+      version:
+        required: false
+        type: string
+        default: ""
+        description: "GitHub Release tag / 版本；留空時只產生發佈候選 Artifact"
+      release_name:
+        required: false
+        type: string
+        default: ""
+        description: "GitHub Release 標題；留空則使用 ``version``"
+      prerelease:
+        required: false
+        type: boolean
+        default: false
+        description: "建立 GitHub Release 時是否標記為 pre-release；未勾選即為正式 release"
+      generate_release_notes:
+        required: false
+        type: boolean
+        default: true
+        description: "建立 GitHub Release 時是否使用 GitHub 自動產生 release notes"
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 7
+        description: "發佈候選 Artifact 保留天數，預設為 ``7``"
+      runs_on:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+        description: "執行環境，預設為 ``ubuntu-latest``"
+    outputs:
+      release_url:
+        description: "建立 GitHub Release 時的 release URL；未建立時為空字串"
+        value: ${{ jobs.release.outputs.release_url }}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 發佈模組包
+    runs-on: ${{ inputs.runs_on }}
+    outputs:
+      release_url: ${{ steps.release.outputs.html_url || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 下載指定打包 Artifact
+        if: ${{ !contains(inputs.artifact_pattern, '*') && !contains(inputs.artifact_pattern, '?') }}
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact_pattern }}
+          path: ${{ inputs.artifact_path }}
+
+      - name: 下載符合 pattern 的打包 Artifact
+        if: ${{ contains(inputs.artifact_pattern, '*') || contains(inputs.artifact_pattern, '?') }}
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.artifact_pattern }}
+          path: ${{ inputs.artifact_path }}
+          merge-multiple: true
+
+      - name: 上傳發佈候選 Artifact
+        if: ${{ inputs.version == '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.candidate_artifact_name }}-${{ github.run_id }}
+          path: ${{ inputs.artifact_path }}/**/*.zip
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days }}
+
+      - name: 建立 GitHub Release
+        id: release
+        if: ${{ inputs.version != '' }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ inputs.version }}
+          commit: ${{ github.sha }}
+          name: ${{ inputs.release_name != '' && inputs.release_name || inputs.version }}
+          artifacts: ${{ inputs.artifact_path }}/**/*.zip
+          artifactErrorsFailBuild: true
+          generateReleaseNotes: ${{ inputs.generate_release_notes }}
+          prerelease: ${{ inputs.prerelease }}

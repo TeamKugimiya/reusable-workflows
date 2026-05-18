@@ -1,0 +1,77 @@
+# summary: 透過 modpack-toolkit 建構模組包 zip 並上傳為 Artifact
+# category: 模組包
+name: 模組包｜打包
+
+on:
+  workflow_call:
+    inputs:
+      build_target:
+        required: false
+        type: string
+        default: "all"
+        description: "要建構的 ``[build.<name>]`` target；預設 ``all``"
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 7
+        description: "Artifact 保留天數，預設為 ``7``"
+      toolkit_version:
+        required: false
+        type: string
+        default: ""
+        description: "要使用的 modpack-toolkit release tag；留空抓 latest"
+      runs_on:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+        description: "執行環境，預設為 ``ubuntu-latest``"
+    secrets:
+      toolkit_token:
+        required: true
+        description: "用於下載私人 modpack-toolkit release 的 PAT（需 ``repo`` 權限）"
+    outputs:
+      artifact_pattern:
+        description: "發佈 workflow 可用來下載建構結果的 Artifact 名稱"
+        value: ${{ jobs.build-modpack.outputs.artifact_pattern }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-modpack:
+    name: 建構模組包
+    runs-on: ${{ inputs.runs_on }}
+    outputs:
+      artifact_pattern: modpack-build-output
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 安裝 modpack-toolkit
+        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
+        with:
+          token: ${{ secrets.toolkit_token }}
+          version: ${{ inputs.toolkit_version }}
+
+      - name: 建構模組包 zip
+        env:
+          BUILD_TARGET: ${{ inputs.build_target }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "$BUILD_TARGET" = "all" ]; then
+            modpack-toolkit build all
+          else
+            modpack-toolkit build "$BUILD_TARGET"
+          fi
+
+      - name: 上傳建構結果
+        uses: actions/upload-artifact@v7
+        with:
+          name: modpack-build-output
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days }}

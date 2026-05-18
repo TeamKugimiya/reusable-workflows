@@ -1,0 +1,124 @@
+# summary: 檢查或上傳 modpack-toolkit ParaTranz 原文；PR 可 dry-run，main 可正式 upload
+# category: 模組包
+name: 模組包｜ParaTranz 上傳
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        required: false
+        type: boolean
+        default: true
+        description: "是否加入 ``--dry-run``；PR 檢查建議為 ``true``，main upload 設為 ``false``"
+      verify_remote:
+        required: false
+        type: boolean
+        default: false
+        description: "正式 upload（``dry_run=false``）時是否加入 ``--verify-remote``；預設 ``false`` 不檢查；dry-run 會忽略此項，不打遠端 API"
+      prune_remote:
+        required: false
+        type: boolean
+        default: false
+        description: "是否加入 ``--prune-remote`` 清除已不存在的遠端檔案；具破壞性，預設為 ``false``，需明確開啟"
+      include_unassigned:
+        required: false
+        type: boolean
+        default: false
+        description: "是否加入 ``--include-unassigned`` 上傳 FTB Quests unassigned 檔案"
+      format:
+        required: false
+        type: string
+        default: "text"
+        description: "dry-run 輸出格式，可用 ``text`` 或 ``json``；正式 upload 只支援 ``text``"
+      max_requests_per_minute:
+        required: false
+        type: number
+        default: 100
+        description: "ParaTranz API request budget，對應 ``--max-requests-per-minute``"
+      toolkit_version:
+        required: false
+        type: string
+        default: ""
+        description: "要使用的 modpack-toolkit release tag；留空抓 latest"
+      runs_on:
+        required: false
+        type: string
+        default: "ubuntu-latest"
+        description: "執行環境，預設為 ``ubuntu-latest``"
+    secrets:
+      toolkit_token:
+        required: true
+        description: "用於下載私人 modpack-toolkit release 的 PAT（需 ``repo`` 權限）"
+      paratranz_token:
+        required: false
+        description: "正式 upload 時必填；會設定為 ``PARATRANZ_TOKEN``"
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    name: ParaTranz 上傳檢查
+    runs-on: ${{ inputs.runs_on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: 安裝 modpack-toolkit
+        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
+        with:
+          token: ${{ secrets.toolkit_token }}
+          version: ${{ inputs.toolkit_version }}
+
+      - name: 重建 ParaTranz cache
+        run: modpack-toolkit convert to-paratranz --clean
+
+      - name: 確認 ParaTranz cache 已提交
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          status=$(git status --porcelain -- .modpack-meta paratranz)
+          if [ -n "$status" ]; then
+            printf '%s\n' "$status"
+            echo "::error::modpack-toolkit convert to-paratranz --clean 產生了未提交變更，請先在 PR 中提交 paratranz/ 與 .modpack-meta/ 更新"
+            exit 1
+          fi
+
+      - name: ParaTranz upload / dry-run
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          VERIFY_REMOTE: ${{ inputs.verify_remote }}
+          PRUNE_REMOTE: ${{ inputs.prune_remote }}
+          INCLUDE_UNASSIGNED: ${{ inputs.include_unassigned }}
+          SYNC_FORMAT: ${{ inputs.format }}
+          MAX_REQUESTS_PER_MINUTE: ${{ inputs.max_requests_per_minute }}
+          PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "$DRY_RUN" != "true" ] && [ -z "${PARATRANZ_TOKEN}" ]; then
+            echo "::error::dry_run=false 時必須傳入 paratranz_token secret"
+            exit 1
+          fi
+
+          args=(sync upload --format "$SYNC_FORMAT" --max-requests-per-minute "$MAX_REQUESTS_PER_MINUTE")
+
+          if [ "$VERIFY_REMOTE" = "true" ] && [ "$DRY_RUN" != "true" ]; then
+            args+=(--verify-remote)
+          fi
+
+          if [ "$PRUNE_REMOTE" = "true" ]; then
+            args+=(--prune-remote)
+          fi
+
+          if [ "$INCLUDE_UNASSIGNED" = "true" ]; then
+            args+=(--include-unassigned)
+          fi
+
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+
+          modpack-toolkit "${args[@]}"

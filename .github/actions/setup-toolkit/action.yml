@@ -1,0 +1,56 @@
+name: Setup toolkit binary
+description: 下載並安裝 TeamKugimiya toolkit CLI 至 /usr/local/bin
+
+inputs:
+  token:
+    required: true
+    description: 下載私人 toolkit release 的 PAT（需 repo 權限）
+  translation:
+    required: false
+    default: "false"
+    description: "true 下載 translation-tool；false 下載 modpack-toolkit"
+  version:
+    required: false
+    default: ""
+    description: 要下載的 release tag；留空抓 latest
+
+runs:
+  using: composite
+  steps:
+    - name: 安裝 toolkit
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        IS_TRANSLATION: ${{ inputs.translation }}
+        TOOLKIT_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${GH_TOKEN}" ]; then
+          echo "::error::缺少 toolkit token；fork PR 不會傳遞 secrets，請改用同 repo 分支或設定有效 PAT"
+          exit 1
+        fi
+
+        if [ "${IS_TRANSLATION}" = "true" ]; then
+          repo="TeamKugimiya/translation-toolkit"
+          asset="translation-tool-linux-amd64"
+          bin="translation-tool"
+        else
+          repo="TeamKugimiya/modpack-toolkit"
+          asset="modpack-toolkit-linux-amd64"
+          bin="modpack-toolkit"
+        fi
+
+        args=(release download)
+        if [ -n "${TOOLKIT_VERSION}" ]; then
+          args+=("${TOOLKIT_VERSION}")
+        fi
+        args+=(--repo "${repo}" --pattern "${asset}" --dir /usr/local/bin)
+
+        gh "${args[@]}"
+        chmod +x "/usr/local/bin/${asset}"
+        mv "/usr/local/bin/${asset}" "/usr/local/bin/${bin}"
+
+        if [ "${IS_TRANSLATION}" != "true" ]; then
+          modpack-toolkit version
+        fi
