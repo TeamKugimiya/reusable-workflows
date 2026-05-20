@@ -2,7 +2,7 @@
 
 # 模組包｜ParaTranz 上傳
 
-檢查或上傳 modpack-toolkit ParaTranz 原文；PR 可 dry-run，main 可正式 upload
+檢查或上傳 modpack-tool ParaTranz 原文；PR 可 dry-run，main 可正式 upload
 
 - **檔案**：[`.github/workflows/Modpack-Paratranz-Upload.yml`](../.github/workflows/Modpack-Paratranz-Upload.yml)
 - **分類**：模組包
@@ -23,7 +23,7 @@
 | `include_unassigned` | `boolean` | — | `false` | 是否加入 ``--include-unassigned`` 上傳 FTB Quests unassigned 檔案 |
 | `format` | `string` | — | `text` | dry-run 輸出格式，可用 ``text`` 或 ``json``；正式 upload 只支援 ``text`` |
 | `max_requests_per_minute` | `number` | — | `100` | ParaTranz API request budget，對應 ``--max-requests-per-minute`` |
-| `toolkit_version` | `string` | — | — | 要使用的 modpack-toolkit release tag；留空抓 latest |
+| `toolkit_version` | `string` | — | — | 要使用的 modpack-tool release tag；留空抓 latest |
 | `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
 
 ## Outputs
@@ -34,7 +34,7 @@ _無_
 
 | 名稱 | 必填 | 說明 |
 | --- | --- | --- |
-| `toolkit_token` | ✅ | 用於下載私人 modpack-toolkit release 的 PAT（需 ``repo`` 權限） |
+| `toolkit_token` | ✅ | 用於下載私人 modpack-tool release 的 PAT（需 ``repo`` 權限） |
 | `paratranz_token` | — | 正式 upload 時必填；會設定為 ``PARATRANZ_TOKEN`` |
 
 ## 使用範例

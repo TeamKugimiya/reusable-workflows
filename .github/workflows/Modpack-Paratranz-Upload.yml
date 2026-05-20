@@ -1,4 +1,4 @@
-# summary: 檢查或上傳 modpack-toolkit ParaTranz 原文；PR 可 dry-run，main 可正式 upload
+# summary: 檢查或上傳 modpack-tool ParaTranz 原文；PR 可 dry-run，main 可正式 upload
 # category: 模組包
 name: 模組包｜ParaTranz 上傳
 
@@ -39,7 +39,7 @@ on:
         required: false
         type: string
         default: ""
-        description: "要使用的 modpack-toolkit release tag；留空抓 latest"
+        description: "要使用的 modpack-tool release tag；留空抓 latest"
       runs_on:
         required: false
         type: string
@@ -48,7 +48,7 @@ on:
     secrets:
       toolkit_token:
         required: true
-        description: "用於下載私人 modpack-toolkit release 的 PAT（需 ``repo`` 權限）"
+        description: "用於下載私人 modpack-tool release 的 PAT（需 ``repo`` 權限）"
       paratranz_token:
         required: false
         description: "正式 upload 時必填；會設定為 ``PARATRANZ_TOKEN``"
@@ -64,14 +64,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: 安裝 modpack-toolkit
+      - name: 安裝 modpack-tool
         uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
         with:
           token: ${{ secrets.toolkit_token }}
           version: ${{ inputs.toolkit_version }}
 
       - name: 重建 ParaTranz cache
-        run: modpack-toolkit convert to-paratranz --clean
+        run: modpack-tool convert to-paratranz --clean
 
       - name: 確認 ParaTranz cache 已提交
         shell: bash
@@ -81,7 +81,7 @@ jobs:
           status=$(git status --porcelain -- .modpack-meta paratranz)
           if [ -n "$status" ]; then
             printf '%s\n' "$status"
-            echo "::error::modpack-toolkit convert to-paratranz --clean 產生了未提交變更，請先在 PR 中提交 paratranz/ 與 .modpack-meta/ 更新"
+            echo "::error::modpack-tool convert to-paratranz --clean 產生了未提交變更，請先在 PR 中提交 paratranz/ 與 .modpack-meta/ 更新"
             exit 1
           fi
 
@@ -121,4 +121,4 @@ jobs:
             args+=(--dry-run)
           fi
 
-          modpack-toolkit "${args[@]}"
+          modpack-tool "${args[@]}"

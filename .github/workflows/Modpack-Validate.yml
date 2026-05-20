@@ -1,4 +1,4 @@
-# summary: 透過 modpack-toolkit doctor 驗證模組包專案；建議在 PR 與 main push 呼叫
+# summary: 透過 modpack-tool doctor 驗證模組包專案；建議在 PR 與 main push 呼叫
 # category: 模組包
 name: 模組包｜驗證
 
@@ -24,7 +24,7 @@ on:
         required: false
         type: string
         default: ""
-        description: "要使用的 modpack-toolkit release tag；留空抓 latest"
+        description: "要使用的 modpack-tool release tag；留空抓 latest"
       runs_on:
         required: false
         type: string
@@ -33,7 +33,7 @@ on:
     secrets:
       toolkit_token:
         required: true
-        description: "用於下載私人 modpack-toolkit release 的 PAT（需 ``repo`` 權限）"
+        description: "用於下載私人 modpack-tool release 的 PAT（需 ``repo`` 權限）"
       curseforge_api_key:
         required: false
         description: "遠端驗證 CurseForge 專案時使用的 API key；會設定為 ``CURSEFORGE_API_KEY``"
@@ -52,7 +52,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: 安裝 modpack-toolkit
+      - name: 安裝 modpack-tool
         uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
         with:
           token: ${{ secrets.toolkit_token }}
@@ -79,4 +79,4 @@ jobs:
             args+=(--strict)
           fi
 
-          modpack-toolkit "${args[@]}"
+          modpack-tool "${args[@]}"

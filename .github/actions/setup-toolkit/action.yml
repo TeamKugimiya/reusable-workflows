@@ -8,7 +8,7 @@ inputs:
   translation:
     required: false
     default: "false"
-    description: "true 下載 translation-tool；false 下載 modpack-toolkit"
+    description: "true 下載 translation-tool；false 下載 modpack-tool"
   version:
     required: false
     default: ""
@@ -36,9 +36,9 @@ runs:
           asset="translation-tool-linux-amd64"
           bin="translation-tool"
         else
-          repo="TeamKugimiya/modpack-toolkit"
-          asset="modpack-toolkit-linux-amd64"
-          bin="modpack-toolkit"
+          repo="TeamKugimiya/modpack-tool"
+          asset="modpack-tool-linux-amd64"
+          bin="modpack-tool"
         fi
 
         if [ -n "${TOOLKIT_VERSION}" ]; then
@@ -78,5 +78,5 @@ runs:
         mv "/usr/local/bin/${asset}" "/usr/local/bin/${bin}"
 
         if [ "${IS_TRANSLATION}" != "true" ]; then
-          modpack-toolkit version
+          modpack-tool version
         fi

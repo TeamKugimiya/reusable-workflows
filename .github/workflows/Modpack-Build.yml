@@ -1,4 +1,4 @@
-# summary: 透過 modpack-toolkit 建構模組包 zip 並上傳為 Artifact
+# summary: 透過 modpack-tool 建構模組包 zip 並上傳為 Artifact
 # category: 模組包
 name: 模組包｜打包
 
@@ -19,7 +19,7 @@ on:
         required: false
         type: string
         default: ""
-        description: "要使用的 modpack-toolkit release tag；留空抓 latest"
+        description: "要使用的 modpack-tool release tag；留空抓 latest"
       runs_on:
         required: false
         type: string
@@ -28,7 +28,7 @@ on:
     secrets:
       toolkit_token:
         required: true
-        description: "用於下載私人 modpack-toolkit release 的 PAT（需 ``repo`` 權限）"
+        description: "用於下載私人 modpack-tool release 的 PAT（需 ``repo`` 權限）"
     outputs:
       artifact_pattern:
         description: "發佈 workflow 可用來下載建構結果的 Artifact 名稱"
@@ -49,7 +49,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 安裝 modpack-toolkit
+      - name: 安裝 modpack-tool
         uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
         with:
           token: ${{ secrets.toolkit_token }}
@@ -63,9 +63,9 @@ jobs:
           set -euo pipefail
 
           if [ "$BUILD_TARGET" = "all" ]; then
-            modpack-toolkit build all
+            modpack-tool build all
           else
-            modpack-toolkit build "$BUILD_TARGET"
+            modpack-tool build "$BUILD_TARGET"
           fi
 
       - name: 上傳建構結果

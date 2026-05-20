@@ -2,7 +2,7 @@
 
 # 模組包｜驗證
 
-透過 modpack-toolkit doctor 驗證模組包專案；建議在 PR 與 main push 呼叫
+透過 modpack-tool doctor 驗證模組包專案；建議在 PR 與 main push 呼叫
 
 - **檔案**：[`.github/workflows/Modpack-Validate.yml`](../.github/workflows/Modpack-Validate.yml)
 - **分類**：模組包
@@ -20,7 +20,7 @@
 | `format` | `string` | — | `text` | doctor 輸出格式，可用 ``text`` 或 ``json`` |
 | `remote` | `boolean` | — | `false` | 是否啟用 ``--remote``，額外驗證上游 artifact 與 ParaTranz 遠端檔案 |
 | `strict` | `boolean` | — | `false` | 是否啟用 ``--strict``，將 warning 也視為驗證失敗 |
-| `toolkit_version` | `string` | — | — | 要使用的 modpack-toolkit release tag；留空抓 latest |
+| `toolkit_version` | `string` | — | — | 要使用的 modpack-tool release tag；留空抓 latest |
 | `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
 
 ## Outputs
@@ -31,7 +31,7 @@ _無_
 
 | 名稱 | 必填 | 說明 |
 | --- | --- | --- |
-| `toolkit_token` | ✅ | 用於下載私人 modpack-toolkit release 的 PAT（需 ``repo`` 權限） |
+| `toolkit_token` | ✅ | 用於下載私人 modpack-tool release 的 PAT（需 ``repo`` 權限） |
 | `curseforge_api_key` | — | 遠端驗證 CurseForge 專案時使用的 API key；會設定為 ``CURSEFORGE_API_KEY`` |
 | `paratranz_token` | — | 啟用 ``remote`` 且專案設定 ParaTranz 時使用；會設定為 ``PARATRANZ_TOKEN`` |
 

@@ -14,11 +14,11 @@
 
 | 工作流程 | 用途 |
 | --- | --- |
-| [模組包｜打包](docs/Modpack-Build.md) | 透過 modpack-toolkit 建構模組包 zip 並上傳為 Artifact |
+| [模組包｜打包](docs/Modpack-Build.md) | 透過 modpack-tool 建構模組包 zip 並上傳為 Artifact |
 | [模組包｜ParaTranz 下載](docs/Modpack-Paratranz-Download.md) | 從 ParaTranz 下載譯文並建立自動更新 PR |
-| [模組包｜ParaTranz 上傳](docs/Modpack-Paratranz-Upload.md) | 檢查或上傳 modpack-toolkit ParaTranz 原文；PR 可 dry-run，main 可正式 upload |
+| [模組包｜ParaTranz 上傳](docs/Modpack-Paratranz-Upload.md) | 檢查或上傳 modpack-tool ParaTranz 原文；PR 可 dry-run，main 可正式 upload |
 | [模組包｜發佈](docs/Modpack-Release.md) | 下載模組包 Artifact，預設整理為發佈候選 Artifact，填入版本時建立 GitHub Release |
-| [模組包｜驗證](docs/Modpack-Validate.md) | 透過 modpack-toolkit doctor 驗證模組包專案；建議在 PR 與 main push 呼叫 |
+| [模組包｜驗證](docs/Modpack-Validate.md) | 透過 modpack-tool doctor 驗證模組包專案；建議在 PR 與 main push 呼叫 |
 
 ### 翻譯包
 

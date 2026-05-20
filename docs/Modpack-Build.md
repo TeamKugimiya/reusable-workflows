@@ -2,7 +2,7 @@
 
 # 模組包｜打包
 
-透過 modpack-toolkit 建構模組包 zip 並上傳為 Artifact
+透過 modpack-tool 建構模組包 zip 並上傳為 Artifact
 
 - **檔案**：[`.github/workflows/Modpack-Build.yml`](../.github/workflows/Modpack-Build.yml)
 - **分類**：模組包
@@ -19,7 +19,7 @@
 | --- | --- | --- | --- | --- |
 | `build_target` | `string` | — | `all` | 要建構的 ``[build.<name>]`` target；預設 ``all`` |
 | `artifact_retention_days` | `number` | — | `7` | Artifact 保留天數，預設為 ``7`` |
-| `toolkit_version` | `string` | — | — | 要使用的 modpack-toolkit release tag；留空抓 latest |
+| `toolkit_version` | `string` | — | — | 要使用的 modpack-tool release tag；留空抓 latest |
 | `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
 
 ## Outputs
@@ -32,7 +32,7 @@
 
 | 名稱 | 必填 | 說明 |
 | --- | --- | --- |
-| `toolkit_token` | ✅ | 用於下載私人 modpack-toolkit release 的 PAT（需 ``repo`` 權限） |
+| `toolkit_token` | ✅ | 用於下載私人 modpack-tool release 的 PAT（需 ``repo`` 權限） |
 
 ## 使用範例
 
