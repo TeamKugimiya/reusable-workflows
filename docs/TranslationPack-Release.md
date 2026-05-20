@@ -23,7 +23,7 @@
 | `anvil_base` | `string` | — | `https://anvil.teamkugimiya.org/v1` | Anvil API base URL |
 | `commit_fallback_count` | `number` | — | `20` | 找不到 ``ci_latest`` tag 時，changelog / Anvil commits 擷取最近幾個 commits |
 | `update_ci_latest` | `boolean` | — | `true` | 是否在此發佈成功後更新 ``ci_latest`` tag；多版本 matrix 發佈時建議傳入 ``release_targets[].update_ci_latest``，只讓最後一個版本更新 |
-| `runs_on` | `string` | — | `ubuntu-latest` | 執行環境，預設為 ``ubuntu-latest`` |
+| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
 
 ## Outputs
 

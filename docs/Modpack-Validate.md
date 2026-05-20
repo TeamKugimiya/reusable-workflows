@@ -15,7 +15,7 @@
 | `remote` | `boolean` | — | `false` | 是否啟用 ``--remote``，額外驗證上游 artifact 與 ParaTranz 遠端檔案 |
 | `strict` | `boolean` | — | `false` | 是否啟用 ``--strict``，將 warning 也視為驗證失敗 |
 | `toolkit_version` | `string` | — | — | 要使用的 modpack-toolkit release tag；留空抓 latest |
-| `runs_on` | `string` | — | `ubuntu-latest` | 執行環境，預設為 ``ubuntu-latest`` |
+| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
 
 ## Outputs
 

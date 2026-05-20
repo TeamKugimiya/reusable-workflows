@@ -18,7 +18,7 @@
 | `format` | `string` | — | `text` | dry-run 輸出格式，可用 ``text`` 或 ``json``；正式 upload 只支援 ``text`` |
 | `max_requests_per_minute` | `number` | — | `100` | ParaTranz API request budget，對應 ``--max-requests-per-minute`` |
 | `toolkit_version` | `string` | — | — | 要使用的 modpack-toolkit release tag；留空抓 latest |
-| `runs_on` | `string` | — | `ubuntu-latest` | 執行環境，預設為 ``ubuntu-latest`` |
+| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
 
 ## Outputs
 

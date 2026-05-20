@@ -17,7 +17,7 @@
 | `strict` | `boolean` | — | `false` | 是否啟用 ``--strict``，將 warning 也視為驗證失敗 |
 | `modrinth_user_agent` | `string` | — | — | 遠端驗證 Modrinth 時使用的 ``MODRINTH_USER_AGENT``；留空則使用專案 ``config/settings.json`` 或工具預設 |
 | `toolkit_version` | `string` | — | — | 要使用的 translation-toolkit release tag；留空抓 latest |
-| `runs_on` | `string` | — | `ubuntu-latest` | 執行環境，預設為 ``ubuntu-latest`` |
+| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
 
 ## Outputs
 

@@ -28,8 +28,8 @@ on:
       runs_on:
         required: false
         type: string
-        default: "ubuntu-latest"
-        description: "執行環境，預設為 ``ubuntu-latest``"
+        default: "blacksmith-2vcpu-ubuntu-2404"
+        description: "執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404``"
     secrets:
       toolkit_token:
         required: true

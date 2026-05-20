@@ -109,7 +109,7 @@ jobs:
   notify:
     needs: download
     if: needs.download.outputs.changed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - run: echo "已建立 PR：${{ needs.download.outputs.pull_request_url }}"
 ```
