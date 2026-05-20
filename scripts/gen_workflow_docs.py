@@ -95,6 +95,20 @@ def render_doc(wf: dict[str, Any]) -> str:
         f"- **檔案**：[`.github/workflows/{wf['filename']}`](../.github/workflows/{wf['filename']})",
         f"- **分類**：{wf['category']}",
         "",
+        "## Permissions",
+        "",
+    ]
+    permissions = wf["permissions"]
+    if isinstance(permissions, dict) and permissions:
+        lines += ["| 權限 | 等級 |", "| --- | --- |"]
+        for key, value in permissions.items():
+            lines.append(f"| `{key}` | `{value}` |")
+    elif permissions:
+        lines.append(f"`{permissions}`")
+    else:
+        lines.append("_未宣告_")
+    lines += [
+        "",
         "## Inputs",
         "",
     ]

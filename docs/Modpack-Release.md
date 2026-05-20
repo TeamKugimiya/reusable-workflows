@@ -7,6 +7,12 @@
 - **檔案**：[`.github/workflows/Modpack-Release.yml`](../.github/workflows/Modpack-Release.yml)
 - **分類**：模組包
 
+## Permissions
+
+| 權限 | 等級 |
+| --- | --- |
+| `contents` | `write` |
+
 ## Inputs
 
 | 名稱 | 型別 | 必填 | 預設 | 說明 |

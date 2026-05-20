@@ -7,6 +7,12 @@
 - **檔案**：[`.github/workflows/Modpack-Paratranz-Upload.yml`](../.github/workflows/Modpack-Paratranz-Upload.yml)
 - **分類**：模組包
 
+## Permissions
+
+| 權限 | 等級 |
+| --- | --- |
+| `contents` | `read` |
+
 ## Inputs
 
 | 名稱 | 型別 | 必填 | 預設 | 說明 |

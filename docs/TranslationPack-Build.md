@@ -7,6 +7,12 @@
 - **檔案**：[`.github/workflows/TranslationPack-Build.yml`](../.github/workflows/TranslationPack-Build.yml)
 - **分類**：翻譯包
 
+## Permissions
+
+| 權限 | 等級 |
+| --- | --- |
+| `contents` | `read` |
+
 ## Inputs
 
 | 名稱 | 型別 | 必填 | 預設 | 說明 |

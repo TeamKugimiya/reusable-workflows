@@ -47,6 +47,8 @@ jobs:
 
   release:
     needs: package
+    permissions:
+      contents: write
     uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Release.yml@v1
     with:
       artifact_pattern: ${{ needs.package.outputs.artifact_pattern }}
