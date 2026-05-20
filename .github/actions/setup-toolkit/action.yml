@@ -36,7 +36,7 @@ runs:
           asset="translation-tool-linux-amd64"
           bin="translation-tool"
         else
-          repo="TeamKugimiya/modpack-tool"
+          repo="TeamKugimiya/modpack-toolkit"
           asset="modpack-tool-linux-amd64"
           bin="modpack-tool"
         fi
