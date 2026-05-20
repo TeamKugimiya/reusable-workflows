@@ -10,11 +10,6 @@ on:
         type: string
         default: "main"
         description: "自動更新 PR 的目標分支"
-      commit_message:
-        required: false
-        type: string
-        default: "chore: 同步 ParaTranz 翻譯"
-        description: "自動更新 commit message"
       toolkit_version:
         required: false
         type: string
@@ -37,9 +32,6 @@ on:
       paratranz_token:
         required: true
         description: "下載 ParaTranz artifact 時使用；會設定為 ``PARATRANZ_TOKEN``"
-      create_pull_request_token:
-        required: false
-        description: "建立同步 PR 用的 PAT；提供後自動 PR 才會觸發其他 CI（預設 ``GITHUB_TOKEN`` 建的 PR 不觸發）。留空則用預設 ``GITHUB_TOKEN``"
     outputs:
       changed:
         description: "是否產生翻譯更新"
@@ -142,7 +134,9 @@ jobs:
           base: ${{ inputs.base_branch }}
           branch: automation/paratranz-download
           delete-branch: true
-          commit-message: ${{ inputs.commit_message }}
+          commit-message: "chore: 同步 ParaTranz 翻譯"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
           title: "chore: 同步 ParaTranz 翻譯"
           body-path: ${{ steps.pr-body.outputs.path }}
           add-paths: |

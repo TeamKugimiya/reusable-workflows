@@ -19,7 +19,6 @@
 | 名稱 | 型別 | 必填 | 預設 | 說明 |
 | --- | --- | --- | --- | --- |
 | `base_branch` | `string` | — | `main` | 自動更新 PR 的目標分支 |
-| `commit_message` | `string` | — | `chore: 同步 ParaTranz 翻譯` | 自動更新 commit message |
 | `toolkit_version` | `string` | — | — | 要使用的 modpack-tool release tag；留空抓 latest |
 | `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
 | `rebuild` | `boolean` | — | `false` | 下載前先強制 ParaTranz 重新建置 artifact（傳入 ``--rebuild``） |
@@ -38,7 +37,6 @@
 | --- | --- | --- |
 | `toolkit_token` | ✅ | 用於下載私人 modpack-tool release 的 PAT（需 ``repo`` 權限） |
 | `paratranz_token` | ✅ | 下載 ParaTranz artifact 時使用；會設定為 ``PARATRANZ_TOKEN`` |
-| `create_pull_request_token` | — | 建立同步 PR 用的 PAT；提供後自動 PR 才會觸發其他 CI（預設 ``GITHUB_TOKEN`` 建的 PR 不觸發）。留空則用預設 ``GITHUB_TOKEN`` |
 
 ## 使用範例
 
@@ -51,7 +49,6 @@ jobs:
     secrets:
       toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}
       paratranz_token: ${{ secrets.PARATRANZ_TOKEN }}
-      create_pull_request_token: ${{ secrets.CREATE_PULL_REQUEST_TOKEN }}
 ```
 
 > 上例使用顯式傳遞，需在呼叫端 repo 的 *Settings → Secrets and variables → Actions* 建立同名 secret。
