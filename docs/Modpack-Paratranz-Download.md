@@ -22,6 +22,7 @@
 | `commit_message` | `string` | — | `chore: 同步 ParaTranz 翻譯` | 自動更新 commit message |
 | `toolkit_version` | `string` | — | — | 要使用的 modpack-tool release tag；留空抓 latest |
 | `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
+| `rebuild` | `boolean` | — | `false` | 下載前先強制 ParaTranz 重新建置 artifact（傳入 ``--rebuild``） |
 
 ## Outputs
 
