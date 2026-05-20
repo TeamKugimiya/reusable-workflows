@@ -33,4 +33,5 @@
 ## 文件
 
 - [開發指南](docs/development.md) — 新增 / 修改 workflow、文件產生流程、慣例
-- [模組包呼叫端 workflow 範例](docs/Modpack-Caller-Example.md) — PR / main 驗證與手動打包發佈範例
+- [模組包呼叫端 workflow 範例](docs/example/modpack.md) — PR / main 驗證與手動打包發佈範例
+- [翻譯包呼叫端 workflow 範例](docs/example/translation-pack.md) — 驗證、建構與 matrix 逐版發佈範例
