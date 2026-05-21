@@ -94,6 +94,8 @@ jobs:
     secrets: inherit
 ```
 
+> 工作流程會在有翻譯變更時自動執行 `modpack-tool build all`，把每個 zip 各自上傳為 artifact，並於 PR body 附上 [nightly.link](https://nightly.link/) 連結，讓無 GitHub 帳號的外部測試者也能直接下載預覽。Artifact 預設保留 14 天。
+>
 > 需在 repo *Settings → Actions → General* 開啟 **Allow GitHub Actions to create and approve pull requests**，自動 PR 才能建立。
 >
 > 預設用 `GITHUB_TOKEN` 建的 PR **不會觸發**其他 workflow（驗證、上傳不會跑）。若要自動 PR 也跑 CI，設定一個 PAT 並透過 `secrets: inherit`（或顯式）傳入 `create_pull_request_token`：

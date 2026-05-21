@@ -2,7 +2,7 @@
 
 # 模組包｜ParaTranz 下載
 
-從 ParaTranz 下載譯文並建立自動更新 PR
+從 ParaTranz 下載譯文並建立自動更新 PR，附上 nightly.link 預覽下載
 
 - **檔案**：[`.github/workflows/Modpack-Paratranz-Download.yml`](../.github/workflows/Modpack-Paratranz-Download.yml)
 - **分類**：模組包
@@ -27,7 +27,7 @@
 
 | 名稱 | 說明 |
 | --- | --- |
-| `changed` | 是否產生翻譯更新 |
+| `changed` | 是否產生翻譯更新（即建立或更新 PR） |
 | `branch` | 有更新時建立的分支名稱 |
 | `pull_request_url` | 有更新時建立的 PR URL |
 
