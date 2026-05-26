@@ -1,0 +1,230 @@
+# summary: 從 ParaTranz 下載譯文並建立自動更新 PR，附上 nightly.link 預覽下載
+# category: 模組包
+name: 模組包｜ParaTranz 下載
+
+on:
+  workflow_call:
+    inputs:
+      base_branch:
+        required: false
+        type: string
+        default: "main"
+        description: "自動更新 PR 的目標分支"
+      toolkit_version:
+        required: false
+        type: string
+        default: ""
+        description: "要使用的 modpack-tool release tag；留空抓 latest"
+      runs_on:
+        required: false
+        type: string
+        default: "blacksmith-2vcpu-ubuntu-2404"
+        description: "執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404``"
+      rebuild:
+        required: false
+        type: boolean
+        default: false
+        description: "下載前先強制 ParaTranz 重新建置 artifact（傳入 ``--rebuild``）"
+    secrets:
+      toolkit_token:
+        required: true
+        description: "用於下載私人 modpack-tool release 的 PAT（需 ``repo`` 權限）"
+      paratranz_token:
+        required: true
+        description: "下載 ParaTranz artifact 時使用；會設定為 ``PARATRANZ_TOKEN``"
+    outputs:
+      changed:
+        description: "是否產生翻譯更新（即建立或更新 PR）"
+        value: ${{ jobs.download.outputs.changed }}
+      branch:
+        description: "有更新時建立的分支名稱"
+        value: ${{ jobs.download.outputs.branch }}
+      pull_request_url:
+        description: "有更新時建立的 PR URL"
+        value: ${{ jobs.download.outputs.pull_request_url }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  download:
+    name: 下載 ParaTranz 譯文與建構預覽
+    runs-on: ${{ inputs.runs_on }}
+    outputs:
+      changed: ${{ steps.cpr.outputs.pull-request-operation == 'created' || steps.cpr.outputs.pull-request-operation == 'updated' }}
+      branch: ${{ steps.cpr.outputs.pull-request-branch || '' }}
+      pull_request_url: ${{ steps.cpr.outputs.pull-request-url || '' }}
+      has_changes: ${{ steps.changes.outputs.has_changes }}
+      zip_files: ${{ steps.collect.outputs.zip_files }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+
+      - name: 安裝 modpack-tool
+        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
+        with:
+          token: ${{ secrets.toolkit_token }}
+          version: ${{ inputs.toolkit_version }}
+
+      - name: 下載並轉換譯文
+        env:
+          PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
+        run: modpack-tool sync download --convert${{ inputs.rebuild && ' --rebuild' || '' }}
+
+      - name: 偵測翻譯變更
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_changes=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "has_changes=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice::無翻譯變更，跳過建構與 PR 建立"
+          fi
+
+      - name: 建構模組包預覽
+        if: steps.changes.outputs.has_changes == 'true'
+        run: modpack-tool build all
+
+      - name: 收集 zip 清單
+        if: steps.changes.outputs.has_changes == 'true'
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=$(find ./dist -maxdepth 1 -type f -name '*.zip' -printf '%f\n' | sort -V | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          if [ "$files" = "[]" ]; then
+            echo "::error::找不到任何 zip 於 ./dist"
+            exit 1
+          fi
+          echo "zip_files=$files" >> "${GITHUB_OUTPUT}"
+
+      - name: 暫存建構結果
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: __paratranz-preview-${{ github.run_id }}
+          path: ./dist/*.zip
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: 產生 Pull Request 內容
+        if: steps.changes.outputs.has_changes == 'true'
+        id: pr-body
+        shell: bash
+        env:
+          ZIP_FILES: ${{ steps.collect.outputs.zip_files }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          body_path="${RUNNER_TEMP}/paratranz-download-pr-body.md"
+          : > "${body_path}"
+
+          state_path=".modpack-meta/paratranz-files.json"
+          {
+            printf '## ParaTranz 狀態\n\n'
+
+            if [ -f "${state_path}" ]; then
+              jq -r '
+                def blank($v): $v == null or $v == "";
+                def value($v): if blank($v) then "—" else ($v | tostring) end;
+                def code($v): if blank($v) then "—" else "`" + ($v | tostring) + "`" end;
+
+                . as $state |
+                ($state.translation_progress // null) as $progress |
+                [
+                  "| 項目 | 值 |",
+                  "| --- | --- |",
+                  "| 專案 slug | " + code($state.project_slug) + " |",
+                  "| ParaTranz project ID | " + value($state.paratranz_project_id) + " |",
+                  "| Wire format | " + code($state.wire_format) + " |",
+                  "| 追蹤檔案數 | " + value((($state.files // {}) | length)) + " |"
+                ]
+                + (
+                  if $progress == null then
+                    ["| 翻譯進度 | — |"]
+                  else
+                    [
+                      "| Artifact ID | " + value($progress.artifact_id) + " |",
+                      "| Artifact 建立時間 | " + code($progress.created_at) + " |",
+                      "| 完成度 | " + value($progress.translated) + " / " + value($progress.total) + " (" + value($progress.completion_percent) + "%) |",
+                      "| 未翻譯條數 | " + value($progress.untranslated) + " |",
+                      "| 有疑問條數 | " + value($progress.disputed) + " |",
+                      "| 已審核 | " + value($progress.reviewed) + " |",
+                      "| 隱藏 | " + value($progress.hidden) + " |",
+                      "| 耗時 | " + value($progress.duration_ms) + " ms |"
+                    ]
+                  end
+                )
+                | .[]
+              ' "${state_path}"
+            else
+              printf '_找不到 state file `%s`。_\n' "${state_path}"
+            fi
+
+            printf '\n## 預覽下載\n\n'
+            printf '本 PR 已自動建構模組包預覽，可由下列 [nightly.link](https://nightly.link/) 直接下載（無需 GitHub 帳號）：\n\n'
+            printf '%s' "${ZIP_FILES}" | jq -r --arg repo "${REPO}" --arg run "${RUN_ID}" '
+              .[] | "- [`" + . + "`](https://nightly.link/" + $repo + "/actions/runs/" + $run + "/" + (. | sub("\\.zip$"; "")) + ".zip)"
+            '
+            printf '\n> Artifact 保留 14 天；超過後連結會失效。\n'
+          } >> "${body_path}"
+
+          printf 'path=%s\n' "${body_path}" >> "${GITHUB_OUTPUT}"
+
+      - name: 建立 Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          base: ${{ inputs.base_branch }}
+          branch: automation/paratranz-download
+          delete-branch: true
+          commit-message: "chore: 同步 ParaTranz 翻譯"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          title: "chore: 同步 ParaTranz 翻譯"
+          body-path: ${{ steps.pr-body.outputs.path }}
+          add-paths: |
+            .modpack-meta
+            paratranz
+            translation
+
+  upload-previews:
+    name: 上傳預覽 artifact（${{ matrix.zip }}）
+    needs: download
+    if: needs.download.outputs.has_changes == 'true'
+    runs-on: ${{ inputs.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        zip: ${{ fromJson(needs.download.outputs.zip_files) }}
+    steps:
+      - name: 下載暫存建構結果
+        uses: actions/download-artifact@v8
+        with:
+          name: __paratranz-preview-${{ github.run_id }}
+          path: ./dist
+
+      - name: 計算 artifact 名稱
+        id: name
+        shell: bash
+        env:
+          ZIP: ${{ matrix.zip }}
+        run: echo "stem=${ZIP%.zip}" >> "${GITHUB_OUTPUT}"
+
+      - name: 上傳 ${{ matrix.zip }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.name.outputs.stem }}
+          path: ./dist/${{ matrix.zip }}
+          archive: false
+          if-no-files-found: error
+          retention-days: 14

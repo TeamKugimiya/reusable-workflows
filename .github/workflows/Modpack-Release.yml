@@ -1,71 +1,108 @@
-name: 模組包 - 發布
+# summary: 下載模組包 Artifact，預設整理為發佈候選 Artifact，填入版本時建立 GitHub Release
+# category: 模組包
+name: 模組包｜發佈
 
 on:
   workflow_call:
     inputs:
-      modpack-version:
-        required: true
-        type: string
-      modpack-official-version:
-        required: true
-        type: string
-      modpack-per-release:
-        required: true
-        type: string
-      modpack-release-ignore:
+      artifact_pattern:
         required: false
         type: string
-        default: "false"
-      release-body-path:
+        default: "modpack-build-output"
+        description: "要下載的打包 Artifact 名稱或 pattern；通常使用打包 workflow 的 ``artifact_pattern`` output"
+      artifact_path:
         required: false
         type: string
-        default: ".github/configs/release_body.md"
+        default: "./dist"
+        description: "下載 Artifact 的目標目錄"
+      candidate_artifact_name:
+        required: false
+        type: string
+        default: "modpack-release-candidate"
+        description: "未填 ``version`` 時，上傳發佈候選 Artifact 使用的名稱前綴"
+      version:
+        required: false
+        type: string
+        default: ""
+        description: "GitHub Release tag / 版本；留空時只產生發佈候選 Artifact"
+      release_name:
+        required: false
+        type: string
+        default: ""
+        description: "GitHub Release 標題；留空則使用 ``version``"
+      prerelease:
+        required: false
+        type: boolean
+        default: false
+        description: "建立 GitHub Release 時是否標記為 pre-release；未勾選即為正式 release"
+      generate_release_notes:
+        required: false
+        type: boolean
+        default: true
+        description: "建立 GitHub Release 時是否使用 GitHub 自動產生 release notes"
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 7
+        description: "發佈候選 Artifact 保留天數，預設為 ``7``"
+      runs_on:
+        required: false
+        type: string
+        default: "blacksmith-2vcpu-ubuntu-2404"
+        description: "執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404``"
+    outputs:
+      release_url:
+        description: "建立 GitHub Release 時的 release URL；未建立時為空字串"
+        value: ${{ jobs.release.outputs.release_url }}
 
 permissions:
   contents: write
 
 jobs:
-  Release:
-    name: 發布版本
-    if: ${{ inputs.modpack-release-ignore != 'true' }}
-    runs-on: ubuntu-latest
-
+  release:
+    name: 發佈模組包
+    runs-on: ${{ inputs.runs_on }}
+    outputs:
+      release_url: ${{ steps.release.outputs.html_url || '' }}
     steps:
-      - name: 查看專案
-        uses: actions/checkout@v4
-
-      - name: 變數替換
-        id: var
-        run: |
-          modpack_name=$(yq e .modpack-name .github/configs/config.yml)
-          echo "modpack_name=$modpack_name" >> "$GITHUB_OUTPUT"
-          sed -i "s/\$ModPack_Name_VAR/${modpack_name}/g" ${{ inputs.release-body-path }}
-          sed -i 's/$ModPack_Version_VAR/${{ inputs.modpack-official-version }}/g' ${{ inputs.release-body-path }}
-
-      - name: 下載補丁成品
-        uses: actions/download-artifact@v4
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
-          name: Patches-Modpack
+          fetch-depth: 0
 
-      - name: 清理所有工作流程成品
-        uses: geekyeggo/delete-artifact@v5
+      - name: 下載指定打包 Artifact
+        if: ${{ !contains(inputs.artifact_pattern, '*') && !contains(inputs.artifact_pattern, '?') }}
+        uses: actions/download-artifact@v8
         with:
-          name: |
-            Patches-Resourcepack
-            Patches-Modpack
+          name: ${{ inputs.artifact_pattern }}
+          path: ${{ inputs.artifact_path }}
 
-      - name: 製作檔案校對和
-        run: |
-          ls -alh
-          sha256sum *.zip > checksums.txt
-
-      - name: 創建發布
-        uses: softprops/action-gh-release@v2
+      - name: 下載符合 pattern 的打包 Artifact
+        if: ${{ contains(inputs.artifact_pattern, '*') || contains(inputs.artifact_pattern, '?') }}
+        uses: actions/download-artifact@v8
         with:
-          name: ${{ steps.var.outputs.modpack_name }} 中文化翻譯 ${{ inputs.modpack-version }}
-          tag_name: ${{ inputs.modpack-version }}
-          prerelease: ${{ inputs.modpack-per-release }}
-          files: |
-            *.zip
-            checksums.txt
-          body_path: ${{ inputs.release-body-path }}
+          pattern: ${{ inputs.artifact_pattern }}
+          path: ${{ inputs.artifact_path }}
+          merge-multiple: true
+
+      - name: 上傳發佈候選 Artifact
+        if: ${{ inputs.version == '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.candidate_artifact_name }}-${{ github.run_id }}
+          path: ${{ inputs.artifact_path }}/**/*.zip
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days }}
+
+      - name: 建立 GitHub Release
+        id: release
+        if: ${{ inputs.version != '' }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ inputs.version }}
+          commit: ${{ github.sha }}
+          name: ${{ inputs.release_name != '' && inputs.release_name || inputs.version }}
+          artifacts: ${{ inputs.artifact_path }}/**/*.zip
+          artifactErrorsFailBuild: true
+          generateReleaseNotes: ${{ inputs.generate_release_notes }}
+          prerelease: ${{ inputs.prerelease }}

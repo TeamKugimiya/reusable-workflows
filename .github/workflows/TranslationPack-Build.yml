@@ -1,0 +1,164 @@
+# summary: 透過 translation-toolkit 建構翻譯資源包並上傳為 Artifact
+# category: 翻譯包
+name: 翻譯包｜建構
+
+on:
+  workflow_call:
+    inputs:
+      pack_name:
+        required: true
+        type: string
+        description: "翻譯包名稱，對應 translation-tool 的 --name，例如 ``ModsTranslationPack`` 或 ``ParaTranslationPack``"
+      version_group:
+        required: false
+        type: string
+        default: ""
+        description: "指定要建構的版本群組（translation-tool 的 --version），留空則建置全部"
+      toolkit_version:
+        required: false
+        type: string
+        default: ""
+        description: "要使用的 translation-toolkit release tag；留空抓 latest"
+      runs_on:
+        required: false
+        type: string
+        default: "blacksmith-2vcpu-ubuntu-2404"
+        description: "執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404``"
+      artifact_retention_days:
+        required: false
+        type: number
+        default: 3
+        description: "Artifact 保留天數，預設為 ``3``"
+      use_packsquash:
+        required: false
+        type: boolean
+        default: true
+        description: "是否安裝 PackSquash 進行最佳化壓縮，失敗時會自動 fallback 至標準 zip"
+    secrets:
+      toolkit_token:
+        required: true
+        description: "用於下載私人 translation-toolkit release 的 PAT（需 ``repo`` 權限）"
+    outputs:
+      zip_files:
+        description: "建構出的 zip 檔名 JSON array，例如 ``[\"ModsTranslationPack-1.21.zip\"]``"
+        value: ${{ jobs.build-packs.outputs.zip_files }}
+      artifact_pattern:
+        description: "發佈 workflow 可用來下載建構結果的 Artifact pattern"
+        value: ${{ jobs.build-packs.outputs.artifact_pattern }}
+      release_targets:
+        description: "發佈 matrix 可用的 JSON array，包含 ``zip``、``version``、``game_versions``、``update_ci_latest``；順序依 ``config/minecraft_versions.json`` 的 ``groups`` 排列，呼叫端需搭配 ``strategy.max-parallel: 1`` 依序發佈"
+        value: ${{ jobs.build-packs.outputs.release_targets }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-packs:
+    name: 建構翻譯資源包
+    runs-on: ${{ inputs.runs_on }}
+    outputs:
+      zip_files: ${{ steps.collect.outputs.zip_files }}
+      artifact_pattern: ${{ steps.collect.outputs.artifact_pattern }}
+      release_targets: ${{ steps.collect.outputs.release_targets }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: 安裝 translation-tool
+        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
+        with:
+          token: ${{ secrets.toolkit_token }}
+          translation: true
+          version: ${{ inputs.toolkit_version }}
+
+      - name: 安裝 PackSquash
+        if: ${{ inputs.use_packsquash }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo ComunidadAylas/PackSquash \
+            --pattern 'packsquash-x86_64-unknown-linux-gnu.zip' --dir /tmp/packsquash
+          unzip -j /tmp/packsquash/packsquash-x86_64-unknown-linux-gnu.zip packsquash -d /usr/local/bin
+          chmod +x /usr/local/bin/packsquash
+
+      - name: 建構翻譯資源包
+        run: |
+          translation-tool build \
+            --name "${{ inputs.pack_name }}" \
+            ${{ inputs.version_group != '' && format('--version {0}', inputs.version_group) || '' }}
+
+      - name: 收集 zip 清單
+        id: collect
+        env:
+          PACK_NAME: ${{ inputs.pack_name }}
+        run: |
+          set -euo pipefail
+
+          files=$(find ./output -maxdepth 1 -type f -name '*.zip' -printf '%f\n' | sort -V | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          if [ "$files" = "[]" ]; then
+            echo "::error::找不到任何 zip 檔案於 ./output"
+            exit 1
+          fi
+
+          if [ ! -f ./config/minecraft_versions.json ]; then
+            echo "::error::找不到 ./config/minecraft_versions.json"
+            exit 1
+          fi
+
+          release_targets=$(jq -c --argjson files "$files" --arg pack "$PACK_NAME" '
+            . as $config
+            | ($config.groups | keys_unsorted) as $group_order
+            | $files
+            | map(
+                . as $zip
+                | ($zip | sub("\\.zip$"; "")) as $stem
+                | (if ($stem | startswith($pack + "-")) then $stem[(($pack | length) + 1):] else $stem end) as $version
+                | {
+                    zip: $zip,
+                    version: $version,
+                    game_versions: (($config.groups[$version].publish.game_versions // [$version]) | join("\n"))
+                  }
+              )
+            | sort_by([(.version as $version | ($group_order | index($version)) // 999999), .version]) as $targets
+            | [
+                range(0; $targets | length) as $i
+                | $targets[$i] + {update_ci_latest: ($i == (($targets | length) - 1))}
+              ]
+          ' ./config/minecraft_versions.json)
+
+          echo "zip_files=$files" >> "$GITHUB_OUTPUT"
+          echo "artifact_pattern=*.zip" >> "$GITHUB_OUTPUT"
+          echo "release_targets=$release_targets" >> "$GITHUB_OUTPUT"
+
+      - name: 暫存建構結果
+        uses: actions/upload-artifact@v7
+        with:
+          name: __build-output-${{ github.run_id }}
+          path: ./output/*.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  upload-packs:
+    name: 上傳翻譯資源包（${{ matrix.zip }}）
+    needs: build-packs
+    runs-on: ${{ inputs.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        zip: ${{ fromJson(needs.build-packs.outputs.zip_files) }}
+    steps:
+      - name: 下載暫存建構結果
+        uses: actions/download-artifact@v8
+        with:
+          name: __build-output-${{ github.run_id }}
+          path: ./dist
+
+      - name: 上傳 ${{ matrix.zip }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.zip }}
+          path: ./dist/${{ matrix.zip }}
+          archive: false
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact_retention_days }}

@@ -1,0 +1,82 @@
+name: Setup toolkit binary
+description: 下載並安裝 TeamKugimiya toolkit CLI 至 /usr/local/bin
+
+inputs:
+  token:
+    required: true
+    description: 下載私人 toolkit release 的 PAT（需 repo 權限）
+  translation:
+    required: false
+    default: "false"
+    description: "true 下載 translation-tool；false 下載 modpack-tool"
+  version:
+    required: false
+    default: ""
+    description: 要下載的 release tag；留空抓 latest
+
+runs:
+  using: composite
+  steps:
+    - name: 安裝 toolkit
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        IS_TRANSLATION: ${{ inputs.translation }}
+        TOOLKIT_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${GH_TOKEN}" ]; then
+          echo "::error::缺少 toolkit token；fork PR 不會傳遞 secrets，請改用同 repo 分支或設定有效 PAT"
+          exit 1
+        fi
+
+        if [ "${IS_TRANSLATION}" = "true" ]; then
+          repo="TeamKugimiya/translation-toolkit"
+          asset="translation-tool-linux-amd64"
+          bin="translation-tool"
+        else
+          repo="TeamKugimiya/modpack-toolkit"
+          asset="modpack-tool-linux-amd64"
+          bin="modpack-tool"
+        fi
+
+        if [ -n "${TOOLKIT_VERSION}" ]; then
+          release_endpoint="repos/${repo}/releases/tags/${TOOLKIT_VERSION}"
+          release_label="${TOOLKIT_VERSION}"
+        else
+          release_endpoint="repos/${repo}/releases/latest"
+          release_label="latest"
+        fi
+
+        release_log="$(mktemp)"
+        if ! asset_api_url="$(gh api "${release_endpoint}" --jq ".assets[] | select(.name == \"${asset}\") | .url" 2>"${release_log}")"; then
+          echo "::error::無法查詢 ${repo} 的 ${release_label} release。請確認 toolkit_token 可讀取 ${repo}，且 release 存在。"
+          cat "${release_log}" >&2
+          rm -f "${release_log}"
+          exit 1
+        fi
+        rm -f "${release_log}"
+
+        if [ -z "${asset_api_url}" ]; then
+          echo "::error::${repo} 的 ${release_label} release 找不到 ${asset} asset。"
+          echo "可用 assets："
+          gh api "${release_endpoint}" --jq '.assets[].name' 2>/dev/null | sed 's/^/- /' >&2 || true
+          exit 1
+        fi
+
+        download_log="$(mktemp)"
+        if ! gh api "${asset_api_url}" --header "Accept: application/octet-stream" > "/usr/local/bin/${asset}" 2>"${download_log}"; then
+          echo "::error::無法下載 ${repo} 的 ${asset} asset。請確認 toolkit_token 可下載 ${repo} release assets。"
+          cat "${download_log}" >&2
+          rm -f "${download_log}"
+          exit 1
+        fi
+        rm -f "${download_log}"
+
+        chmod +x "/usr/local/bin/${asset}"
+        mv "/usr/local/bin/${asset}" "/usr/local/bin/${bin}"
+
+        if [ "${IS_TRANSLATION}" != "true" ]; then
+          modpack-tool version
+        fi
