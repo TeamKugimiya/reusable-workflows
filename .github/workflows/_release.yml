@@ -1,0 +1,102 @@
+# summary: 手動發佈：建立 vX.Y.Z 與 vX major tag 並產生 GitHub Release（內部 CI，非 reusable）
+# category: 內部 CI
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "版本號，例如 1.0.0 或 1.0.0-rc.1（可含 v 前綴）"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 解析版本
+        id: parse
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${VERSION_INPUT#v}"
+          if ! [[ "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::版本格式無效：${version}（需為 X.Y.Z 或 X.Y.Z-pre）"
+            exit 1
+          fi
+          major="${BASH_REMATCH[1]}"
+          prerelease_suffix="${BASH_REMATCH[4]}"
+          full_tag="v${version}"
+          major_tag="v${major}"
+          if [ -n "$prerelease_suffix" ]; then
+            is_prerelease="true"
+          else
+            is_prerelease="false"
+          fi
+          {
+            echo "full_tag=${full_tag}"
+            echo "major_tag=${major_tag}"
+            echo "is_prerelease=${is_prerelease}"
+          } >> "$GITHUB_OUTPUT"
+          echo "已解析：full=${full_tag}, major=${major_tag}, prerelease=${is_prerelease}"
+
+      - name: 檢查 tag 是否已存在
+        env:
+          FULL_TAG: ${{ steps.parse.outputs.full_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/${FULL_TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag ${FULL_TAG} 已存在於 origin"
+            exit 1
+          fi
+
+      - name: 設定 Git 身份
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 建立並推送版本 tag
+        env:
+          FULL_TAG: ${{ steps.parse.outputs.full_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag -a "${FULL_TAG}" -m "Release ${FULL_TAG}"
+          git push origin "${FULL_TAG}"
+
+      - name: 更新 major tag
+        if: steps.parse.outputs.is_prerelease == 'false'
+        env:
+          MAJOR_TAG: ${{ steps.parse.outputs.major_tag }}
+          FULL_TAG: ${{ steps.parse.outputs.full_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag -f -a "${MAJOR_TAG}" -m "Update ${MAJOR_TAG} -> ${FULL_TAG}"
+          git push -f origin "${MAJOR_TAG}"
+
+      - name: 建立 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FULL_TAG: ${{ steps.parse.outputs.full_tag }}
+          IS_PRERELEASE: ${{ steps.parse.outputs.is_prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=("$FULL_TAG" --generate-notes --title "$FULL_TAG")
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            args+=(--prerelease)
+          fi
+          gh release create "${args[@]}"
