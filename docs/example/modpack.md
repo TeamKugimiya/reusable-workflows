@@ -98,14 +98,12 @@ jobs:
 >
 > 需在 repo *Settings → Actions → General* 開啟 **Allow GitHub Actions to create and approve pull requests**，自動 PR 才能建立。
 >
-> 預設用 `GITHUB_TOKEN` 建的 PR **不會觸發**其他 workflow（驗證、上傳不會跑）。若要自動 PR 也跑 CI，設定一個 PAT 並透過 `secrets: inherit`（或顯式）傳入 `create_pull_request_token`：
+> 預設用 `GITHUB_TOKEN` 建的 PR **不會觸發**其他 workflow（驗證、上傳不會跑）。目前這個範例流程也未提供獨立的 PR token 輸入。
 >
-> ```yaml
->     secrets:
->       toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}
->       paratranz_token: ${{ secrets.PARATRANZ_TOKEN }}
->       create_pull_request_token: ${{ secrets.CREATE_PULL_REQUEST_TOKEN }}
-> ```
+> 若要讓自動 PR 也觸發下游 CI，請改為：
+> 1. 在 caller workflow 中改寫/複製這段流程，並在 `create-pull-request` 步驟指定 PAT。
+> 2. 或直接在 `peter-evans/create-pull-request` 中自行傳入你自己的 token。
+
 
 `changed` / `branch` / `pull_request_url` output 為字串，下游 job 判斷需用 `== 'true'`：
 

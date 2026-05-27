@@ -77,6 +77,4 @@ runs:
         chmod +x "/usr/local/bin/${asset}"
         mv "/usr/local/bin/${asset}" "/usr/local/bin/${bin}"
 
-        if [ "${IS_TRANSLATION}" != "true" ]; then
-          modpack-tool version
-        fi
+        "${bin}" version
