@@ -1,14 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
-  ],
-  "packageRules": [
-    {
-      "description": "Use full GitHub Action version tags instead of major tags or digests",
-      "matchManagers": ["github-actions"],
-      "pinDigests": false,
-      "rangeStrategy": "pin"
-    }
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
   ]
 }
