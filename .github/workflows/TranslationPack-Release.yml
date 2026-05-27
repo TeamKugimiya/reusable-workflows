@@ -100,13 +100,13 @@ jobs:
       anvil_builds: ${{ steps.anvil.outputs.builds || '[]' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
       - name: 下載指定建構 Artifact
         if: ${{ !contains(inputs.artifact_pattern, '*') && !contains(inputs.artifact_pattern, '?') }}
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ inputs.artifact_pattern }}
           path: ${{ inputs.artifact_path }}
@@ -114,7 +114,7 @@ jobs:
 
       - name: 下載符合 pattern 的建構 Artifact
         if: ${{ contains(inputs.artifact_pattern, '*') || contains(inputs.artifact_pattern, '?') }}
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: ${{ inputs.artifact_pattern }}
           path: ${{ inputs.artifact_path }}
@@ -232,7 +232,7 @@ jobs:
       - name: 發佈至 Modrinth / CurseForge
         id: publish
         if: ${{ inputs.modrinth_id != '' || inputs.curseforge_id != '' }}
-        uses: Kir-Antipov/mc-publish@v3.3.0
+        uses: Kir-Antipov/mc-publish@995edadc13559a8b28d0b7e6571229f067ec7659 # v3.3.0
         with:
           modrinth-id: ${{ inputs.modrinth_id }}
           modrinth-unfeature-mode: subset
