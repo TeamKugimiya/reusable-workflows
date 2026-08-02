@@ -232,7 +232,7 @@ jobs:
       - name: 發佈至 Modrinth / CurseForge
         id: publish
         if: ${{ inputs.modrinth_id != '' || inputs.curseforge_id != '' }}
-        uses: Kir-Antipov/mc-publish@995edadc13559a8b28d0b7e6571229f067ec7659 # v3.3.0
+        uses: Kir-Antipov/mc-publish@52307b03863581dec6b652b83e597aec02ebb075 # v3.3.1
         with:
           modrinth-id: ${{ inputs.modrinth_id }}
           modrinth-unfeature-mode: subset
