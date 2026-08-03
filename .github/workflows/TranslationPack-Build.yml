@@ -34,6 +34,11 @@ on:
         type: boolean
         default: true
         description: "是否安裝 PackSquash 進行最佳化壓縮，失敗時會自動 fallback 至標準 zip"
+      post_preview_comment:
+        required: false
+        type: boolean
+        default: false
+        description: "PR 觸發時是否貼出 nightly.link 免登入下載連結留言（同一個 PR 會就地更新而非重複貼）；呼叫端必須在該 job 授權 ``pull-requests: write``，權限不足時留言步驟會失敗但不影響建構結果"
     secrets:
       toolkit_token:
         required: true
@@ -155,6 +160,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # 把整包建構結果拆成 per-zip 具名 artifact，讓發佈 matrix 能用
+  # ``artifact_pattern: release_targets[].zip`` 指名下載單一版本。
+  # 成本是 N 次 runner 冷啟與 N 次全量下載；若哪天不需要單獨下載某個版本的
+  # artifact，可改由發佈端下載整包後過濾，省掉整個 job。
   upload-packs:
     name: 上傳翻譯資源包（${{ matrix.zip }}）
     needs: build-packs
@@ -178,3 +187,61 @@ jobs:
           archive: false
           if-no-files-found: error
           retention-days: ${{ inputs.artifact_retention_days }}
+
+  # 貼出 nightly.link 連結，讓貢獻者不必登入 GitHub 也能下載單一版本測試。
+  # 需要 upload-packs 完成後才貼，否則連結點下去會是 404。
+  # 因為 artifact 是以 ``archive: false`` 上傳，nightly.link 直接回傳資源包本身，
+  # 不會多包一層 zip；URL 用 artifact 名稱即可（本身已含 ``.zip``）。
+  comment-preview:
+    name: 貼出預覽下載連結
+    needs: [build-packs, upload-packs]
+    if: ${{ inputs.post_preview_comment && github.event_name == 'pull_request' }}
+    runs-on: ${{ inputs.runs_on }}
+    permissions:
+      pull-requests: write
+    steps:
+      # 權限不足時只留 warning，不讓整個建構因為留言失敗而變紅。
+      - name: 建立或更新 PR 留言
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RELEASE_TARGETS: ${{ needs.build-packs.outputs.release_targets }}
+          SHORT_SHA: ${{ needs.build-packs.outputs.short_sha }}
+          RETENTION_DAYS: ${{ inputs.artifact_retention_days }}
+        run: |
+          set -euo pipefail
+
+          marker='<!-- translation-pack-preview -->'
+          body_path="${RUNNER_TEMP}/preview-comment.md"
+
+          {
+            printf '%s\n' "$marker"
+            printf '## 📦 建構產物預覽\n\n'
+            printf '本 PR 的翻譯資源包已建構完成，可直接下載測試，**不需要 GitHub 帳號**：\n\n'
+            printf '| 版本 | 下載 |\n| --- | --- |\n'
+            printf '%s' "$RELEASE_TARGETS" | jq -r --arg repo "$REPO" --arg run "$RUN_ID" '
+              .[] | "| `" + .version + "` | [" + .zip + "](https://nightly.link/" + $repo + "/actions/runs/" + $run + "/" + .zip + ") |"
+            '
+            printf '\n> 連結由 [nightly.link](https://nightly.link/) 提供，下載到的就是資源包本身，可直接放進 `resourcepacks`。\n'
+            printf '> Artifact 保留 %s 天，逾期後連結失效；本留言會隨新的 commit 自動更新。\n' "$RETENTION_DAYS"
+            printf '> 對應 commit：`%s`\n' "$SHORT_SHA"
+          } > "$body_path"
+
+          # --paginate 會輸出多個 JSON array，用 -s 收成一包後再展開。
+          comment_id=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            | jq -r -s --arg marker "$marker" '
+                [.[][] | select(.body | startswith($marker)) | .id] | first // empty
+              ')
+
+          if [ -n "$comment_id" ]; then
+            jq -n --rawfile body "$body_path" '{body: $body}' \
+              | gh api -X PATCH "repos/${REPO}/issues/comments/${comment_id}" --input - >/dev/null
+            echo "::notice::已更新既有預覽留言（id ${comment_id}）"
+          else
+            jq -n --rawfile body "$body_path" '{body: $body}' \
+              | gh api -X POST "repos/${REPO}/issues/${PR_NUMBER}/comments" --input - >/dev/null
+            echo "::notice::已建立預覽留言"
+          fi

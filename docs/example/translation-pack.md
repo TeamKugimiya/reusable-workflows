@@ -93,6 +93,37 @@ jobs:
 
 `release_version` 留空時會 fallback 成 `version`，這代表每次發佈同一個 MC 群組都會產生同名版本 —— Modrinth 不擋重複的 `version_number`，但專案頁會出現多個無法分辨的版本，因此建議一律明確傳入。
 
+## PR 預覽：自動貼出免登入下載連結
+
+`post_preview_comment: true` 會在 PR 上貼一則留言，把每個版本的 [nightly.link](https://nightly.link/) 下載連結列成表格。貢獻者不需要 GitHub 帳號、也不用進 Actions 頁面翻 artifact，點連結拿到的就是資源包本身（因為 artifact 以 `archive: false` 上傳，不會多包一層 zip）。
+
+同一個 PR 推新 commit 時會就地更新原留言，不會洗版。
+
+```yaml
+name: Build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Build.yml@v1
+    with:
+      pack_name: ModsTranslationPack
+      post_preview_comment: true
+    secrets: inherit
+```
+
+> **必須自己授權 `pull-requests: write`**。Reusable workflow 的權限「只能維持或縮小，不能放大」，所以呼叫端沒給的話 reusable workflow 這邊宣告也沒用。權限不足時留言步驟只會留下 warning，不會讓建構變紅。
+>
+> 來自 fork 的 PR 拿到的是唯讀 token，貼不了留言——不過 fork PR 本來就會因為缺 `toolkit_token` 而在更前面失敗。
+
 ## 只跑建構：不發佈，只留 Artifact
 
 ```yaml

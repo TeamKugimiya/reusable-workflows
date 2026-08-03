@@ -109,21 +109,18 @@ jobs:
       zip_files: ${{ steps.files.outputs.zip_files }}
       anvil_builds: ${{ steps.anvil.outputs.builds || '[]' }}
     steps:
+      # fetch-depth: 0 是必要的：changelog 需要 ``ci_latest..HEAD`` 的完整歷史。
+      # 但 git log / describe / tag / push 都只碰 commit 物件，不碰 blob，因此用
+      # blobless clone 省下翻譯檔歷史的傳輸量；matrix 逐版發佈時會 clone N 次。
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          filter: blob:none
 
-      - name: 下載指定建構 Artifact
-        if: ${{ !contains(inputs.artifact_pattern, '*') && !contains(inputs.artifact_pattern, '?') }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: ${{ inputs.artifact_pattern }}
-          path: ${{ inputs.artifact_path }}
-          skip-decompress: true
-
-      - name: 下載符合 pattern 的建構 Artifact
-        if: ${{ contains(inputs.artifact_pattern, '*') || contains(inputs.artifact_pattern, '?') }}
+      # ``pattern`` 對精確名稱也成立（glob 會匹配同名字串），搭配 merge-multiple
+      # 後輸出結構與 ``name`` 版本一致，因此不需要拆成兩個互斥 step。
+      - name: 下載建構 Artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: ${{ inputs.artifact_pattern }}
