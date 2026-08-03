@@ -269,6 +269,31 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Modrinth 寫入後讀取不保證立即一致，剛建立的版本可能有數秒查不到。
+          # Anvil 會以 modrinth_version_id 反查 Modrinth 比對 SHA-512，查無版本
+          # 時直接回 400，因此先確認版本可見再上傳。
+          if [ -n "$MODRINTH_VERSION_ID" ]; then
+            deadline=$(( $(date +%s) + 30 ))
+
+            while :; do
+              status=$(curl -sS -o /dev/null -w "%{http_code}" \
+                -H "User-Agent: TeamKugimiya/reusable-workflows" \
+                "https://api.modrinth.com/v2/version/${MODRINTH_VERSION_ID}")
+
+              if [ "$status" = "200" ]; then
+                break
+              fi
+
+              if [ "$(date +%s)" -ge "$deadline" ]; then
+                echo "::warning::Modrinth version ${MODRINTH_VERSION_ID} 等待逾時（最後 HTTP ${status}），仍嘗試上傳 Anvil"
+                break
+              fi
+
+              echo "Modrinth version ${MODRINTH_VERSION_ID} 尚未可見（HTTP ${status}），2 秒後重試…"
+              sleep 2
+            done
+          fi
+
           commits_payload=$(jq -c . "$COMMITS_FILE")
           builds='[]'
 
