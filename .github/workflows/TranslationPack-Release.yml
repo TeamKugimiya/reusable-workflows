@@ -45,6 +45,16 @@ on:
         type: string
         default: ""
         description: "CurseForge 專案 ID；留空則不發佈 CurseForge"
+      publish_retry_attempts:
+        required: false
+        type: number
+        default: 6
+        description: "Modrinth / CurseForge 發佈的最大嘗試次數（含首次），mc-publish 預設為 ``2``；重試涵蓋整個上傳流程，過大可能在平台寫入後才失敗的情況下產生重複版本"
+      publish_retry_delay:
+        required: false
+        type: number
+        default: 30000
+        description: "Modrinth / CurseForge 發佈重試間隔（毫秒），mc-publish 預設為 ``10000``"
       project_id:
         required: false
         type: string
@@ -253,6 +263,9 @@ jobs:
           changelog-file: ${{ steps.changelog.outputs.changelog_file }}
           loaders: minecraft
           game-versions: ${{ inputs.game_versions != '' && inputs.game_versions || inputs.version }}
+
+          retry-attempts: ${{ inputs.publish_retry_attempts }}
+          retry-delay: ${{ inputs.publish_retry_delay }}
 
       - name: 發佈至 Anvil
         id: anvil

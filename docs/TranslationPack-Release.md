@@ -25,6 +25,8 @@
 | `game_versions` | `string` | — | — | Modrinth / CurseForge Minecraft versions，多行字串；建議由建構 workflow 的 ``release_targets[].game_versions`` 傳入，留空則使用 ``version`` |
 | `modrinth_id` | `string` | — | — | Modrinth 專案 ID；留空則不發佈 Modrinth |
 | `curseforge_id` | `string` | — | — | CurseForge 專案 ID；留空則不發佈 CurseForge |
+| `publish_retry_attempts` | `number` | — | `6` | Modrinth / CurseForge 發佈的最大嘗試次數（含首次），mc-publish 預設為 ``2``；重試涵蓋整個上傳流程，過大可能在平台寫入後才失敗的情況下產生重複版本 |
+| `publish_retry_delay` | `number` | — | `30000` | Modrinth / CurseForge 發佈重試間隔（毫秒），mc-publish 預設為 ``10000`` |
 | `project_id` | `string` | — | — | Anvil project_id，例如 ``modstranslationpack`` 或 ``paratranslationpack``；留空則不發佈 Anvil |
 | `anvil_base` | `string` | — | `https://anvil.teamkugimiya.org/v1` | Anvil API base URL |
 | `commit_fallback_count` | `number` | — | `20` | 找不到 ``ci_latest`` tag 時，changelog / Anvil commits 擷取最近幾個 commits |
