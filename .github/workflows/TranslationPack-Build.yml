@@ -69,7 +69,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: 安裝 translation-tool
-        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@9d730930e48ae736b56a0ee52f94f13056000b9e # v1
+        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
         with:
           token: ${{ secrets.toolkit_token }}
           translation: true

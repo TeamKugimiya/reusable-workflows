@@ -3,5 +3,13 @@
   "extends": [
     "config:recommended",
     "helpers:pinGitHubActionDigests"
+  ],
+  "packageRules": [
+    {
+      "description": "本 repo 自己的 action 以 @v1 引用，不釘 digest 也不自動更新：digest pin 對同 repo 的 action 沒有保護作用，只會讓 action 改動需要發兩次版才生效",
+      "matchDepNames": ["TeamKugimiya/reusable-workflows{/,}**"],
+      "pinDigests": false,
+      "enabled": false
+    }
   ]
 }
