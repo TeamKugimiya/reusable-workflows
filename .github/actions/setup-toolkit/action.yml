@@ -31,13 +31,22 @@ runs:
           exit 1
         fi
 
+        case "$(uname -m)" in
+          x86_64) arch="amd64" ;;
+          aarch64 | arm64) arch="arm64" ;;
+          *)
+            echo "::error::不支援的 runner 架構：$(uname -m)"
+            exit 1
+            ;;
+        esac
+
         if [ "${IS_TRANSLATION}" = "true" ]; then
           repo="TeamKugimiya/translation-toolkit"
-          asset="translation-tool-linux-amd64"
+          asset="translation-tool-linux-${arch}"
           bin="translation-tool"
         else
           repo="TeamKugimiya/modpack-toolkit"
-          asset="modpack-tool-linux-amd64"
+          asset="modpack-tool-linux-${arch}"
           bin="modpack-tool"
         fi
 

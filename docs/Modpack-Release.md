@@ -25,7 +25,7 @@
 | `prerelease` | `boolean` | — | `false` | 建立 GitHub Release 時是否標記為 pre-release；未勾選即為正式 release |
 | `generate_release_notes` | `boolean` | — | `true` | 建立 GitHub Release 時是否使用 GitHub 自動產生 release notes |
 | `artifact_retention_days` | `number` | — | `7` | 發佈候選 Artifact 保留天數，預設為 ``7`` |
-| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
+| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404-arm` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404-arm`` |
 
 ## Outputs
 

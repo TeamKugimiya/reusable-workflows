@@ -18,8 +18,8 @@ on:
       runs_on:
         required: false
         type: string
-        default: "blacksmith-2vcpu-ubuntu-2404"
-        description: "執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404``"
+        default: "blacksmith-2vcpu-ubuntu-2404-arm"
+        description: "執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404-arm``"
       rebuild:
         required: false
         type: boolean

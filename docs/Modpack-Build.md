@@ -20,7 +20,7 @@
 | `build_target` | `string` | — | `all` | 要建構的 ``[build.<name>]`` target；預設 ``all`` |
 | `artifact_retention_days` | `number` | — | `7` | Artifact 保留天數，預設為 ``7`` |
 | `toolkit_version` | `string` | — | — | 要使用的 modpack-tool release tag；留空抓 latest |
-| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
+| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404-arm` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404-arm`` |
 
 ## Outputs
 

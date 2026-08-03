@@ -22,8 +22,8 @@ on:
       runs_on:
         required: false
         type: string
-        default: "blacksmith-2vcpu-ubuntu-2404"
-        description: "執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404``"
+        default: "blacksmith-4vcpu-ubuntu-2404-arm"
+        description: "執行環境，預設為 ``blacksmith-4vcpu-ubuntu-2404-arm``"
       artifact_retention_days:
         required: false
         type: number
@@ -81,9 +81,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+
+          case "$(uname -m)" in
+            x86_64) asset="packsquash-x86_64-unknown-linux-gnu.zip" ;;
+            aarch64 | arm64) asset="packsquash-aarch64-unknown-linux-gnu.zip" ;;
+            *)
+              echo "::error::不支援的 runner 架構：$(uname -m)"
+              exit 1
+              ;;
+          esac
+
           gh release download --repo ComunidadAylas/PackSquash \
-            --pattern 'packsquash-x86_64-unknown-linux-gnu.zip' --dir /tmp/packsquash
-          unzip -j /tmp/packsquash/packsquash-x86_64-unknown-linux-gnu.zip packsquash -d /usr/local/bin
+            --pattern "${asset}" --dir /tmp/packsquash
+          unzip -j "/tmp/packsquash/${asset}" packsquash -d /usr/local/bin
           chmod +x /usr/local/bin/packsquash
 
       - name: 建構翻譯資源包

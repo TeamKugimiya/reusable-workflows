@@ -20,7 +20,7 @@
 | --- | --- | --- | --- | --- |
 | `base_branch` | `string` | — | `main` | 自動更新 PR 的目標分支 |
 | `toolkit_version` | `string` | — | — | 要使用的 modpack-tool release tag；留空抓 latest |
-| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404`` |
+| `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404-arm` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404-arm`` |
 | `rebuild` | `boolean` | — | `false` | 下載前先強制 ParaTranz 重新建置 artifact（傳入 ``--rebuild``） |
 
 ## Outputs
