@@ -48,6 +48,9 @@ on:
       release_targets:
         description: "發佈 matrix 可用的 JSON array，包含 ``zip``、``version``、``game_versions``、``update_ci_latest``；順序依 ``config/minecraft_versions.json`` 的 ``groups`` 排列，呼叫端需搭配 ``strategy.max-parallel: 1`` 依序發佈"
         value: ${{ jobs.build-packs.outputs.release_targets }}
+      short_sha:
+        description: "本次建構 commit 的 7 碼短 SHA，可用來組出 ``release_version`` / ``release_name``"
+        value: ${{ jobs.build-packs.outputs.short_sha }}
 
 permissions:
   contents: read
@@ -60,6 +63,7 @@ jobs:
       zip_files: ${{ steps.collect.outputs.zip_files }}
       artifact_pattern: ${{ steps.collect.outputs.artifact_pattern }}
       release_targets: ${{ steps.collect.outputs.release_targets }}
+      short_sha: ${{ steps.collect.outputs.short_sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -130,6 +134,7 @@ jobs:
           echo "zip_files=$files" >> "$GITHUB_OUTPUT"
           echo "artifact_pattern=*.zip" >> "$GITHUB_OUTPUT"
           echo "release_targets=$release_targets" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: 暫存建構結果
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

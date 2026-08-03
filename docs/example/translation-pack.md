@@ -72,6 +72,8 @@ jobs:
       artifact_pattern: ${{ matrix.target.zip }}
       game_versions: ${{ matrix.target.game_versions }}
       update_ci_latest: ${{ matrix.target.update_ci_latest }}
+      release_version: git-${{ needs.build.outputs.short_sha }}
+      release_name: ${{ matrix.target.version }}｜git ${{ needs.build.outputs.short_sha }}
       modrinth_id: ABCDEFGH
       curseforge_id: "123456"
       project_id: modstranslationpack
@@ -79,6 +81,17 @@ jobs:
 ```
 
 > `modrinth_id` / `curseforge_id` / `project_id` 留空可關閉對應平台發佈。設定 `project_id` 時必填 `anvil_api_token`；設定 `modrinth_id` / `curseforge_id` 時各自需要對應 token。
+
+### 版本號與版本名稱
+
+`release_version` 與 `release_name` 由呼叫端決定，因為命名慣例是各翻譯包自己的事（例如模組翻譯包用 `git-<短 SHA>`，正式版改用 `v1.9.3`）。兩者不能共用同一個值：
+
+- `release_version` 會成為 Modrinth 的 `version_number`，限制為 ``^[a-zA-Z0-9!@$()`.+,_"-]+$``、最長 32 字元，**不允許空格**，所以要寫成 `git-2e170e2`。
+- `release_name` 是顯示名稱，沒有字元限制，可以寫成 `1.21｜git 2e170e2`。
+
+`${{ github.sha }}` 是 40 碼、加上前綴會超過 32 字元上限，因此請改用建構 workflow 的 `short_sha` output。`matrix.target.version` 就是 `config/minecraft_versions.json` 的群組 key（`1.21`、`26.1`、`26.2`），直接使用即可。
+
+`release_version` 留空時會 fallback 成 `version`，這代表每次發佈同一個 MC 群組都會產生同名版本 —— Modrinth 不擋重複的 `version_number`，但專案頁會出現多個無法分辨的版本，因此建議一律明確傳入。
 
 ## 只跑建構：不發佈，只留 Artifact
 

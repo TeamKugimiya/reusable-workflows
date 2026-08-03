@@ -234,15 +234,20 @@ jobs:
         if: ${{ inputs.modrinth_id != '' || inputs.curseforge_id != '' }}
         uses: Kir-Antipov/mc-publish@52307b03863581dec6b652b83e597aec02ebb075 # v3.3.1
         with:
+          # mc-publish 以「是否有 token」決定要不要發佈該平台，因此未設定 id 時
+          # 必須把 token 收斂成 ``${undefined}``，否則 ``secrets: inherit`` 會讓
+          # 未指定的平台帶著空 project id 上傳失敗。
           modrinth-id: ${{ inputs.modrinth_id }}
           modrinth-unfeature-mode: subset
-          modrinth-token: ${{ secrets.modrinth_token }}
+          modrinth-token: ${{ inputs.modrinth_id != '' && secrets.modrinth_token || '${undefined}' }}
 
           curseforge-id: ${{ inputs.curseforge_id }}
-          curseforge-token: ${{ secrets.curseforge_token }}
+          curseforge-token: ${{ inputs.curseforge_id != '' && secrets.curseforge_token || '${undefined}' }}
 
           files: ${{ steps.files.outputs.files }}
-          name: ${{ inputs.release_name }}
+          # 空字串會被 mc-publish 當成「有給值」而略過 release name 的自動推斷，
+          # 結果是版本名直接變成 version_number；留空時要傳 ``${undefined}``。
+          name: ${{ inputs.release_name != '' && inputs.release_name || '${undefined}' }}
           version: ${{ inputs.release_version != '' && inputs.release_version || inputs.version }}
           version-type: release
           changelog-file: ${{ steps.changelog.outputs.changelog_file }}
