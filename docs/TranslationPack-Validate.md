@@ -18,7 +18,8 @@
 | 名稱 | 型別 | 必填 | 預設 | 說明 |
 | --- | --- | --- | --- | --- |
 | `project_path` | `string` | — | `.` | 翻譯專案根目錄路徑，對應 translation-tool doctor 的 ``--path`` |
-| `format` | `string` | — | `text` | doctor 輸出格式，可用 ``text`` 或 ``json`` |
+| `format` | `string` | — | `github` | doctor 輸出格式，可用 ``text``、``json``、``markdown`` 或 ``github``；``github`` 會輸出 Actions annotation |
+| `severity` | `string` | — | `error` | doctor 最低顯示嚴重度，可用 ``error``、``warning`` 或 ``info`` |
 | `remote` | `boolean` | — | `false` | 是否啟用 ``--remote``，額外驗證遠端平台、最新版資訊與最新版 JAR 的 ``en_us.json`` |
 | `strict` | `boolean` | — | `false` | 是否啟用 ``--strict``，將 warning 也視為驗證失敗 |
 | `modrinth_user_agent` | `string` | — | — | 遠端驗證 Modrinth 時使用的 ``MODRINTH_USER_AGENT``；留空則使用專案 ``config/settings.json`` 或工具預設 |

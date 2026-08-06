@@ -22,6 +22,19 @@ jobs:
     secrets: inherit
 ```
 
+若希望將診斷直接顯示為 GitHub Actions annotation，並只顯示 `warning` 以上項目：
+
+```yaml
+jobs:
+  validate:
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Validate.yml@v1
+    with:
+      format: github
+      severity: warning
+      strict: true
+    secrets: inherit
+```
+
 需要額外驗證 Modrinth / CurseForge / 最新版 JAR 時加 `remote: true`，並把 `curseforge_api_key` 傳進來：
 
 ```yaml

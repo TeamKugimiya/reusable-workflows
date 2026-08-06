@@ -13,8 +13,13 @@ on:
       format:
         required: false
         type: string
-        default: "text"
-        description: "doctor 輸出格式，可用 ``text`` 或 ``json``"
+        default: "github"
+        description: "doctor 輸出格式，可用 ``text``、``json``、``markdown`` 或 ``github``；``github`` 會輸出 Actions annotation"
+      severity:
+        required: false
+        type: string
+        default: "error"
+        description: "doctor 最低顯示嚴重度，可用 ``error``、``warning`` 或 ``info``"
       remote:
         required: false
         type: boolean
@@ -70,6 +75,7 @@ jobs:
         env:
           PROJECT_PATH: ${{ inputs.project_path }}
           DOCTOR_FORMAT: ${{ inputs.format }}
+          DOCTOR_SEVERITY: ${{ inputs.severity }}
           DOCTOR_REMOTE: ${{ inputs.remote }}
           DOCTOR_STRICT: ${{ inputs.strict }}
           MODRINTH_USER_AGENT: ${{ inputs.modrinth_user_agent }}
@@ -78,7 +84,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          args=(doctor --path "$PROJECT_PATH" --format "$DOCTOR_FORMAT")
+          args=(doctor --path "$PROJECT_PATH" --format "$DOCTOR_FORMAT" --severity "$DOCTOR_SEVERITY")
 
           if [ "$DOCTOR_REMOTE" = "true" ]; then
             args+=(--remote)
