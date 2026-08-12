@@ -19,9 +19,10 @@
 | --- | --- | --- | --- | --- |
 | `project_path` | `string` | — | `.` | 翻譯專案根目錄路徑，對應 translation-tool doctor 的 ``--path`` |
 | `format` | `string` | — | `github` | doctor 輸出格式，可用 ``text``、``json``、``markdown`` 或 ``github``；``github`` 會輸出 Actions annotation |
-| `severity` | `string` | — | `error` | doctor 最低顯示嚴重度，可用 ``error``、``warning`` 或 ``info`` |
+| `severity` | `string` | — | `error` | annotation 的最低顯示嚴重度，可用 ``error``、``warning`` 或 ``info``。嚴重度只影響顯示、不影響結束碼。預設只標註 error，因為 GitHub 每個 step 每種等級最多顯示 10 則 annotation，專案既有的 warning 會把額度吃光、反而蓋掉本次 PR 相關的項目；完整的 warning 清單改由 job summary 提供 |
 | `remote` | `boolean` | — | `false` | 是否啟用 ``--remote``，額外驗證遠端平台、最新版資訊與最新版 JAR 的 ``en_us.json`` |
 | `strict` | `boolean` | — | `false` | 是否啟用 ``--strict``，將 warning 也視為驗證失敗 |
+| `job_summary` | `boolean` | — | `true` | 是否將 warning 以上的完整診斷報告寫入 job summary。annotation 有每種等級 10 則的顯示上限，summary 沒有，適合放專案整體的健康清單；``remote: true`` 時會略過以免重跑一次遠端驗證 |
 | `modrinth_user_agent` | `string` | — | — | 遠端驗證 Modrinth 時使用的 ``MODRINTH_USER_AGENT``；留空則使用專案 ``config/settings.json`` 或工具預設 |
 | `toolkit_version` | `string` | — | — | 要使用的 translation-toolkit release tag；留空抓 latest |
 | `runs_on` | `string` | — | `blacksmith-2vcpu-ubuntu-2404-arm` | 執行環境，預設為 ``blacksmith-2vcpu-ubuntu-2404-arm`` |

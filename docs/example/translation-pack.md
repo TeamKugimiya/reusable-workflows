@@ -22,18 +22,14 @@ jobs:
     secrets: inherit
 ```
 
-若希望將診斷直接顯示為 GitHub Actions annotation，並只顯示 `warning` 以上項目：
+診斷結果分兩個地方呈現，不需要額外設定：
 
-```yaml
-jobs:
-  validate:
-    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Validate.yml@v1
-    with:
-      format: github
-      severity: warning
-      strict: true
-    secrets: inherit
-```
+- **Annotation**（預設 `format: github`、`severity: error`）只標註 error，直接顯示在 Files changed 對應的檔案上。
+- **Job summary**（預設 `job_summary: true`）附上 warning 以上的完整表格。
+
+之所以不把 warning 也做成 annotation，是因為 GitHub 每個 step 每種等級最多只顯示 10 則。專案累積的既有 warning 會把額度吃光，本次 PR 真正相關的項目反而被擠掉。Job summary 沒有筆數上限，適合放整個專案的健康清單。
+
+既有 warning 清乾淨後，加上 `strict: true` 就能讓警告也成為擋門條件。若不需要 summary（例如另有儀表板），設 `job_summary: false`；`remote: true` 時會自動略過，避免重跑一次遠端驗證。
 
 需要額外驗證 Modrinth / CurseForge / 最新版 JAR 時加 `remote: true`，並把 `curseforge_api_key` 傳進來：
 

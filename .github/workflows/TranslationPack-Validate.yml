@@ -19,7 +19,7 @@ on:
         required: false
         type: string
         default: "error"
-        description: "doctor 最低顯示嚴重度，可用 ``error``、``warning`` 或 ``info``"
+        description: "annotation 的最低顯示嚴重度，可用 ``error``、``warning`` 或 ``info``。嚴重度只影響顯示、不影響結束碼。預設只標註 error，因為 GitHub 每個 step 每種等級最多顯示 10 則 annotation，專案既有的 warning 會把額度吃光、反而蓋掉本次 PR 相關的項目；完整的 warning 清單改由 job summary 提供"
       remote:
         required: false
         type: boolean
@@ -30,6 +30,11 @@ on:
         type: boolean
         default: false
         description: "是否啟用 ``--strict``，將 warning 也視為驗證失敗"
+      job_summary:
+        required: false
+        type: boolean
+        default: true
+        description: "是否將 warning 以上的完整診斷報告寫入 job summary。annotation 有每種等級 10 則的顯示上限，summary 沒有，適合放專案整體的健康清單；``remote: true`` 時會略過以免重跑一次遠端驗證"
       modrinth_user_agent:
         required: false
         type: string
@@ -95,3 +100,24 @@ jobs:
           fi
 
           translation-tool "${args[@]}"
+
+      # annotation 每個 step 每種等級最多顯示 10 則，專案累積的 warning 會把額度
+      # 吃光，反而蓋掉本次 PR 真正相關的項目。完整清單改放 job summary：沒有筆數
+      # 上限、不會污染 Files changed，也保留了整個專案的健康狀況。
+      # 上一步失敗時報告更需要被看到，所以用 always()。
+      - name: 輸出完整報告至 job summary
+        if: ${{ always() && inputs.job_summary && !inputs.remote }}
+        continue-on-error: true
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          # 有 error 時 doctor 以非零結束，但這一步只負責呈現，擋門交給上一步。
+          # markdown 輸出自帶標題與總計，直接附加即可。
+          report=$(translation-tool doctor --path "$PROJECT_PATH" --format markdown --severity warning) || true
+
+          if [ -n "$report" ]; then
+            printf '%s\n' "$report" >> "$GITHUB_STEP_SUMMARY"
+          fi
