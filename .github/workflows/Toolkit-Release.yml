@@ -1,0 +1,273 @@
+# summary: 驗證 release gate，依受限 toolkit profile 建構五平台 binary、SHA512SUMS、版本 smoke test 並建立 GitHub Release
+# category: 工具鏈
+name: Go Toolkit｜發佈
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+        description: "Semantic version tag，格式必須是 ``vX.Y.Z``"
+      binary_name:
+        required: true
+        type: string
+        description: "產出的 CLI binary 名稱，例如 ``translation-tool`` 或 ``paratranz-tool``"
+      release_profile:
+        required: false
+        type: string
+        default: "buildinfo"
+        description: "版本 metadata 契約；可用 ``buildinfo`` 或 ``modpack-toolkit``"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: toolkit-release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Validate release
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Validate release request
+        env:
+          BINARY_NAME: ${{ inputs.binary_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_PROFILE: ${{ inputs.release_profile }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$RELEASE_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version 必須符合 vX.Y.Z"
+            exit 1
+          fi
+          if ! [[ "$BINARY_NAME" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "::error::binary_name 必須是小寫英數與單一連字號分隔的名稱"
+            exit 1
+          fi
+          case "$RELEASE_PROFILE" in
+            buildinfo | modpack-toolkit) ;;
+            *)
+              echo "::error::release_profile 必須是 buildinfo 或 modpack-toolkit"
+              exit 1
+              ;;
+          esac
+          if [ "$GITHUB_REF" != "refs/heads/${DEFAULT_BRANCH}" ]; then
+            echo "::error::只能從預設分支 ${DEFAULT_BRANCH} 發佈；目前 ref 是 ${GITHUB_REF}"
+            exit 1
+          fi
+          if [ "$RELEASE_PROFILE" = buildinfo ] && ! grep -qF "## ${RELEASE_VERSION}（" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md 缺少 '## ${RELEASE_VERSION}（...）' 段落"
+            echo "請先依 CONTRIBUTING.md 將未發佈段落提升為正式版本。"
+            exit 1
+          fi
+          set +e
+          tag_error="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_VERSION}" 2>&1 >/dev/null)"
+          tag_status=$?
+          set -e
+          if [ "$tag_status" -eq 0 ]; then
+            echo "::error::origin 已存在 tag ${RELEASE_VERSION}"
+            exit 1
+          fi
+          if [[ "$tag_error" != *"HTTP 404"* ]]; then
+            echo "::error::無法確認 tag ${RELEASE_VERSION} 是否存在"
+            echo "$tag_error" >&2
+            exit 1
+          fi
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        run: ./scripts/check.sh build
+
+      - name: Run release gate
+        shell: bash
+        run: ./scripts/check.sh vet unit e2e tidy
+
+  release:
+    name: Publish GitHub Release
+    needs: test
+    # GitHub API 建立 immutable version tag 並上傳 release assets。
+    permissions:
+      contents: write # zizmor: ignore[undocumented-permissions]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Revalidate tag absence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          tag_error="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_VERSION}" 2>&1 >/dev/null)"
+          tag_status=$?
+          set -e
+          if [ "$tag_status" -eq 0 ]; then
+            echo "::error::origin 已存在 tag ${RELEASE_VERSION}；可能有另一個 release run 先完成"
+            exit 1
+          fi
+          if [[ "$tag_error" != *"HTTP 404"* ]]; then
+            echo "::error::無法確認 tag ${RELEASE_VERSION} 是否存在"
+            echo "$tag_error" >&2
+            exit 1
+          fi
+
+      - name: Cross-compile release binaries
+        id: build
+        env:
+          BINARY_NAME: ${{ inputs.binary_name }}
+          RELEASE_PROFILE: ${{ inputs.release_profile }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          export CGO_ENABLED=0
+          commit="$(git rev-parse HEAD)"
+          build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          case "$RELEASE_PROFILE" in
+            buildinfo)
+              package="github.com/${GITHUB_REPOSITORY}/internal/buildinfo"
+              ldflags="-s -w -X ${package}.Version=${RELEASE_VERSION} -X ${package}.Commit=${commit} -X ${package}.BuildTime=${build_time}"
+              ;;
+            modpack-toolkit)
+              package="github.com/${GITHUB_REPOSITORY}/internal/toolkit"
+              ldflags="-s -w -X ${package}.Version=${RELEASE_VERSION}"
+              ;;
+          esac
+          build_flags=(-trimpath -buildvcs=false)
+          GOOS=linux   GOARCH=amd64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-linux-amd64" .
+          GOOS=linux   GOARCH=arm64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-linux-arm64" .
+          GOOS=darwin  GOARCH=amd64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-darwin-amd64" .
+          GOOS=darwin  GOARCH=arm64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-darwin-arm64" .
+          GOOS=windows GOARCH=amd64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-windows-amd64.exe" .
+          {
+            echo "commit=${commit}"
+            echo "build_time=${build_time}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Generate and verify checksums
+        env:
+          BINARY_NAME: ${{ inputs.binary_name }}
+        working-directory: dist
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha512sum "${BINARY_NAME}-"* > SHA512SUMS
+          if [ "$(wc -l < SHA512SUMS | tr -d ' ')" != "5" ]; then
+            echo "::error::SHA512SUMS 必須恰好包含五個 release binary"
+            exit 1
+          fi
+          sha512sum -c SHA512SUMS
+
+      - name: Smoke test release metadata
+        env:
+          BINARY_NAME: ${{ inputs.binary_name }}
+          BUILD_COMMIT: ${{ steps.build.outputs.commit }}
+          BUILD_TIME: ${{ steps.build.outputs.build_time }}
+          RELEASE_PROFILE: ${{ inputs.release_profile }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          binary="dist/${BINARY_NAME}-linux-amd64"
+          chmod +x "$binary"
+          case "$RELEASE_PROFILE" in
+            buildinfo)
+              "$binary" version --format json > release-version.json
+              jq -e \
+                --arg name "$BINARY_NAME" \
+                --arg version "$RELEASE_VERSION" \
+                --arg commit "$BUILD_COMMIT" \
+                --arg build_time "$BUILD_TIME" \
+                '.name == $name and .version == $version and .commit == $commit and .build_time == $build_time and .platform == "linux/amd64"' \
+                release-version.json >/dev/null
+              ;;
+            modpack-toolkit)
+              [ "$("$binary" version)" = "$RELEASE_VERSION" ] || {
+                echo "::error::modpack-toolkit binary version smoke test 失敗"
+                exit 1
+              }
+              ;;
+          esac
+
+      - name: Extract release notes
+        if: inputs.release_profile == 'buildinfo'
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk -v version="$RELEASE_VERSION" '
+            BEGIN { heading = "## " version "（" }
+            substr($0, 1, length(heading)) == heading { found = 1; next }
+            found && /^## / { exit }
+            found && /^---$/ { next }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::${RELEASE_VERSION} 的 release notes 是空的"
+            exit 1
+          fi
+
+      - name: Create tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f "ref=refs/tags/${RELEASE_VERSION}" \
+            -f "sha=${GITHUB_SHA}" >/dev/null
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_PROFILE: ${{ inputs.release_profile }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$RELEASE_PROFILE" in
+            buildinfo)
+              gh release create "$RELEASE_VERSION" dist/* \
+                --title "$RELEASE_VERSION" \
+                --notes-file release-notes.md
+              ;;
+            modpack-toolkit)
+              gh release create "$RELEASE_VERSION" dist/* \
+                --title "$RELEASE_VERSION" \
+                --generate-notes
+              ;;
+          esac

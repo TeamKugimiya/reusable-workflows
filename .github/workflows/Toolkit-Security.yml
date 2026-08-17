@@ -1,0 +1,476 @@
+# summary: 以免費工具執行 Go 弱點、SAST、依賴、設定與 secret 掃描，並封鎖新增 finding
+# category: 工具鏈
+name: Go Toolkit｜安全掃描
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: toolkit-security-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-security:
+    name: Go security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Validate security baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == 1 and
+            (.gosec | type == "array") and
+            (.semgrep | type == "array") and
+            (.opengrep | type == "array")
+          ' .github/security-baseline.json >/dev/null
+
+      - name: Install gosec v2.28.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          tool_dir="${RUNNER_TEMP}/security-tools"
+          archive="${RUNNER_TEMP}/gosec_2.28.0_linux_amd64.tar.gz"
+          mkdir -p "$tool_dir"
+          curl --fail --silent --show-error --location \
+            --output "$archive" \
+            https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_linux_amd64.tar.gz
+          printf '%s  %s\n' \
+            d7882e505b1ff345d458bf0e893eec8019bc849f861ad73a212869540dd505ff \
+            "$archive" | sha256sum --check --strict -
+          tar -xzf "$archive" -C "$tool_dir" gosec
+          printf '%s\n' "$tool_dir" >> "$GITHUB_PATH"
+
+      - name: Install govulncheck v1.6.0
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+
+      - name: Run govulncheck
+        run: ./scripts/check.sh vuln
+
+      - name: Run gosec
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p security-reports
+          gosec \
+            -quiet \
+            -no-fail \
+            -severity medium \
+            -confidence medium \
+            -fmt sarif \
+            -out security-reports/gosec.sarif \
+            ./...
+
+      - name: Reject new gosec findings
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq --arg tool gosec --slurpfile baseline .github/security-baseline.json '
+            [
+              .runs[]?.results[]?
+              | {
+                  rule_id: (.ruleId // ""),
+                  path: (.locations[0].physicalLocation.artifactLocation.uri // ""),
+                  line: (.locations[0].physicalLocation.region.startLine // 0),
+                  snippet: (.locations[0].physicalLocation.region.snippet.text // "")
+                }
+            ]
+            | unique
+            | sort_by(.rule_id, .path, .line, .snippet)
+            | . as $current
+            | ($baseline[0][$tool] // []) as $known
+            | {
+                current_count: ($current | length),
+                baseline_count: ($known | length),
+                new: [
+                  $current[]
+                  | select(. as $finding | ($known | index($finding)) == null)
+                ]
+              }
+          ' security-reports/gosec.sarif > security-reports/gosec-new.json
+
+          current_count="$(jq -r '.current_count' security-reports/gosec-new.json)"
+          baseline_count="$(jq -r '.baseline_count' security-reports/gosec-new.json)"
+          new_count="$(jq -r '.new | length' security-reports/gosec-new.json)"
+          {
+            echo '### gosec'
+            echo
+            echo "- 本次 findings：${current_count}"
+            echo "- 已審查 baseline：${baseline_count}"
+            echo "- 新增 findings：${new_count}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$new_count" -ne 0 ]; then
+            jq -r '.new[] | "::error file=\(.path),line=\(.line)::gosec \(.rule_id) 是未列入 baseline 的 finding"' \
+              security-reports/gosec-new.json
+            exit 1
+          fi
+
+      - name: Upload Go security reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: security-go-${{ github.run_id }}
+          path: security-reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+  secrets:
+    name: Secret scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # v8.30.1 is intentionally avoided: its released binary can load the
+      # default rules while matching no secrets. The canary below guards future
+      # upgrades against the same silent failure mode.
+      - name: Install Gitleaks v8.29.1 and Betterleaks v1.7.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          tool_dir="${RUNNER_TEMP}/security-tools"
+          gitleaks_archive="${RUNNER_TEMP}/gitleaks_8.29.1_linux_x64.tar.gz"
+          betterleaks_archive="${RUNNER_TEMP}/betterleaks_1.7.4_linux_x64.tar.gz"
+          mkdir -p "$tool_dir"
+
+          curl --fail --silent --show-error --location \
+            --output "$gitleaks_archive" \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.29.1/gitleaks_8.29.1_linux_x64.tar.gz
+          printf '%s  %s\n' \
+            e4eb209d04e20339d77122a3bdf9cd41351255cfb27ebcb75e85325e04f88924 \
+            "$gitleaks_archive" | sha256sum --check --strict -
+          tar -xzf "$gitleaks_archive" -C "$tool_dir" gitleaks
+
+          curl --fail --silent --show-error --location \
+            --output "$betterleaks_archive" \
+            https://github.com/betterleaks/betterleaks/releases/download/v1.7.4/betterleaks_1.7.4_linux_x64.tar.gz
+          printf '%s  %s\n' \
+            9ed7739a39a26a2217f38726bff8a8f4fe079d3b21272caa7959823ccc444d96 \
+            "$betterleaks_archive" | sha256sum --check --strict -
+          tar -xzf "$betterleaks_archive" -C "$tool_dir" betterleaks
+
+          printf '%s\n' "$tool_dir" >> "$GITHUB_PATH"
+
+      - name: Verify secret scanners with a canary
+        shell: bash
+        run: |
+          set -euo pipefail
+          canary="${RUNNER_TEMP}/secret-scanner-canary.txt"
+          {
+            printf 'token = "ghp_'
+            printf 'wA9mK2pLxN4vRtQzY6bC8dEfGhJlM0oPq1rS'
+            printf '"\n'
+          } > "$canary"
+
+          set +e
+          gitleaks dir "$canary" \
+            --no-banner \
+            --redact=100 \
+            --exit-code=7 \
+            --report-format=json \
+            --report-path="${RUNNER_TEMP}/gitleaks-canary.json" \
+            >/dev/null 2>&1
+          gitleaks_code=$?
+          betterleaks dir "$canary" \
+            --no-banner \
+            --no-color \
+            --redact=100 \
+            --exit-code=7 \
+            --report-format=json \
+            --report-path="${RUNNER_TEMP}/betterleaks-canary.json" \
+            >/dev/null 2>&1
+          betterleaks_code=$?
+          set -e
+
+          if [ "$gitleaks_code" -ne 7 ] || [ "$betterleaks_code" -ne 7 ]; then
+            echo "::error::secret scanner canary 失敗（Gitleaks=${gitleaks_code}, Betterleaks=${betterleaks_code}）"
+            exit 1
+          fi
+
+      - name: Run Betterleaks
+        id: betterleaks
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p security-reports
+          betterleaks git . \
+            --no-banner \
+            --no-color \
+            --redact=100 \
+            --report-format=sarif \
+            --report-path=security-reports/betterleaks.sarif
+
+      - name: Run Gitleaks
+        id: gitleaks
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p security-reports
+          gitleaks git . \
+            --no-banner \
+            --redact=100 \
+            --report-format=sarif \
+            --report-path=security-reports/gitleaks.sarif
+
+      - name: Enforce secret scan results
+        if: always()
+        env:
+          BETTERLEAKS_OUTCOME: ${{ steps.betterleaks.outcome }}
+          GITLEAKS_OUTCOME: ${{ steps.gitleaks.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '### Secret scanners'
+            echo
+            echo "- Betterleaks：${BETTERLEAKS_OUTCOME}"
+            echo "- Gitleaks：${GITLEAKS_OUTCOME}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$BETTERLEAKS_OUTCOME" != success ] || [ "$GITLEAKS_OUTCOME" != success ]; then
+            echo "::error::Betterleaks 或 Gitleaks 偵測到 secret，或掃描器執行失敗；請檢查已遮蔽的 SARIF artifact"
+            exit 1
+          fi
+
+      - name: Upload secret scan reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: security-secrets-${{ github.run_id }}
+          path: security-reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+  trivy:
+    name: Dependencies, config, and filesystem
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Trivy v0.73.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          tool_dir="${RUNNER_TEMP}/security-tools"
+          archive="${RUNNER_TEMP}/trivy_0.73.0_Linux-64bit.tar.gz"
+          mkdir -p "$tool_dir"
+          curl --fail --silent --show-error --location \
+            --output "$archive" \
+            https://github.com/aquasecurity/trivy/releases/download/v0.73.0/trivy_0.73.0_Linux-64bit.tar.gz
+          printf '%s  %s\n' \
+            2edd39da482bb4e9831962487b68f68e3928ec3137794757f54d00383d79547b \
+            "$archive" | sha256sum --check --strict -
+          tar -xzf "$archive" -C "$tool_dir" trivy
+          printf '%s\n' "$tool_dir" >> "$GITHUB_PATH"
+
+      - name: Run Trivy
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p security-reports
+
+          canary_dir="${RUNNER_TEMP}/trivy-secret-canary"
+          mkdir -p "$canary_dir"
+          {
+            printf '%s\n' '-----BEGIN RSA PRIVATE KEY-----'
+            printf '%s\n' 'MIIEpAIBAAKCAQEA2N4uW9qP7mR5kT3vL8sJ1cX6aB0dF9hG'
+            printf '%s\n' '-----END RSA PRIVATE KEY-----'
+          } > "${canary_dir}/key.pem"
+          set +e
+          trivy fs \
+            --cache-dir "${RUNNER_TEMP}/trivy-cache" \
+            --scanners secret \
+            --format sarif \
+            --output "${RUNNER_TEMP}/trivy-canary.sarif" \
+            --exit-code 7 \
+            "$canary_dir" \
+            >/dev/null 2>&1
+          canary_code=$?
+          set -e
+          if [ "$canary_code" -ne 7 ]; then
+            echo "::error::Trivy secret scanner canary 失敗（exit=${canary_code}）"
+            exit 1
+          fi
+
+          trivy fs \
+            --cache-dir "${RUNNER_TEMP}/trivy-cache" \
+            --scanners vuln,misconfig,secret \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --skip-dirs .git \
+            --skip-dirs graphify-out \
+            --format sarif \
+            --output security-reports/trivy.sarif \
+            --exit-code 1 \
+            .
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: security-trivy-${{ github.run_id }}
+          path: security-reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+  sast:
+    name: Semgrep CE and OpenGrep
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout pinned Semgrep rules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: semgrep/semgrep-rules
+          ref: 40b8c63f75dc7c22c8a77482d73bfb864b146f7e
+          path: .security-rules
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+
+      - name: Install OpenGrep v1.27.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          tool_dir="${RUNNER_TEMP}/security-tools"
+          binary="${tool_dir}/opengrep"
+          mkdir -p "$tool_dir"
+          curl --fail --silent --show-error --location \
+            --output "$binary" \
+            https://github.com/opengrep/opengrep/releases/download/v1.27.0/opengrep_manylinux_x86
+          printf '%s  %s\n' \
+            9d47d7de3f22ec5a93b25af9126648191e3d3b5d759dd4f699006138724719b3 \
+            "$binary" | sha256sum --check --strict -
+          chmod 0755 "$binary"
+          printf '%s\n' "$tool_dir" >> "$GITHUB_PATH"
+
+      - name: Run Semgrep CE v1.173.0 through uv
+        env:
+          SEMGREP_SEND_METRICS: "off"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p security-reports
+          uvx \
+            --managed-python \
+            --python 3.13 \
+            --isolated \
+            --from 'semgrep==1.173.0' \
+            semgrep scan \
+            --metrics off \
+            --no-rewrite-rule-ids \
+            --config .security-rules/go/lang/security \
+            --sarif \
+            --output security-reports/semgrep.sarif \
+            --exclude .security-rules \
+            --exclude graphify-out \
+            .
+
+      - name: Run OpenGrep
+        env:
+          OPENGREP_SEND_METRICS: "off"
+        shell: bash
+        run: |
+          set -euo pipefail
+          opengrep scan \
+            --no-rewrite-rule-ids \
+            --config .security-rules/go/lang/security \
+            --sarif-output security-reports/opengrep.sarif \
+            --exclude .security-rules \
+            --exclude graphify-out \
+            .
+
+      - name: Reject new SAST findings
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          compare_report() {
+            local tool="$1"
+            local report="security-reports/${tool}.sarif"
+            local output="security-reports/${tool}-new.json"
+            jq --arg tool "$tool" --slurpfile baseline .github/security-baseline.json '
+              [
+                .runs[]?.results[]?
+                | {
+                    rule_id: (.ruleId // ""),
+                    path: (.locations[0].physicalLocation.artifactLocation.uri // ""),
+                    line: (.locations[0].physicalLocation.region.startLine // 0),
+                    snippet: (.locations[0].physicalLocation.region.snippet.text // "")
+                  }
+              ]
+              | unique
+              | sort_by(.rule_id, .path, .line, .snippet)
+              | . as $current
+              | ($baseline[0][$tool] // []) as $known
+              | {
+                  current_count: ($current | length),
+                  baseline_count: ($known | length),
+                  new: [
+                    $current[]
+                    | select(. as $finding | ($known | index($finding)) == null)
+                  ]
+                }
+            ' "$report" > "$output"
+
+            local current_count baseline_count new_count
+            current_count="$(jq -r '.current_count' "$output")"
+            baseline_count="$(jq -r '.baseline_count' "$output")"
+            new_count="$(jq -r '.new | length' "$output")"
+            {
+              echo "### ${tool}"
+              echo
+              echo "- 本次 findings：${current_count}"
+              echo "- 已審查 baseline：${baseline_count}"
+              echo "- 新增 findings：${new_count}"
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          compare_report semgrep
+          compare_report opengrep
+          new_count="$(jq -s '[.[].new[]] | length' \
+            security-reports/semgrep-new.json \
+            security-reports/opengrep-new.json)"
+          if [ "$new_count" -ne 0 ]; then
+            for output in security-reports/semgrep-new.json security-reports/opengrep-new.json; do
+              tool="$(basename "$output" -new.json)"
+              jq -r --arg tool "$tool" \
+                '.new[] | "::error file=\(.path),line=\(.line)::\($tool) \(.rule_id) 是未列入 baseline 的 finding"' \
+                "$output"
+            done
+            exit 1
+          fi
+
+      - name: Upload SAST reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: security-sast-${{ github.run_id }}
+          path: security-reports/
+          if-no-files-found: warn
+          retention-days: 14

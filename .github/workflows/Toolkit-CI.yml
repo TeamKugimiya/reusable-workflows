@@ -1,0 +1,224 @@
+# summary: 以共同 gate 執行 Go toolkit 的三平台測試、靜態檢查、整合測試與跨平台編譯
+# category: 工具鏈
+name: Go Toolkit｜CI
+
+on:
+  workflow_call:
+    inputs:
+      binary_name:
+        required: true
+        type: string
+        description: "產出的 CLI binary 名稱，例如 ``translation-tool`` 或 ``paratranz-tool``"
+      integration_profile:
+        required: false
+        type: string
+        default: "none"
+        description: "額外真實網路測試；可用 ``none`` 或 ``translation-toolkit``"
+      e2e_profile:
+        required: false
+        type: string
+        default: "standard"
+        description: "E2E 執行模式；可用 ``standard`` 或含 built-binary coverage 的 ``paratranz-toolkit``"
+    secrets:
+      curseforge_api_key:
+        required: false
+        description: "``translation-toolkit`` integration profile 使用的 CurseForge API key"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Validate workflow inputs
+        env:
+          BINARY_NAME: ${{ inputs.binary_name }}
+          E2E_PROFILE: ${{ inputs.e2e_profile }}
+          INTEGRATION_PROFILE: ${{ inputs.integration_profile }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$BINARY_NAME" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "::error::binary_name 必須是小寫英數與單一連字號分隔的名稱"
+            exit 1
+          fi
+          case "$INTEGRATION_PROFILE" in
+            none | translation-toolkit) ;;
+            *)
+              echo "::error::integration_profile 必須是 none 或 translation-toolkit"
+              exit 1
+              ;;
+          esac
+          case "$E2E_PROFILE" in
+            standard | paratranz-toolkit) ;;
+            *)
+              echo "::error::e2e_profile 必須是 standard 或 paratranz-toolkit"
+              exit 1
+              ;;
+          esac
+          if [ ! -x scripts/check.sh ]; then
+            echo "::error::caller 必須提供可執行的 scripts/check.sh"
+            exit 1
+          fi
+
+      - name: Download dependencies
+        shell: bash
+        run: go mod download
+
+      - name: Build
+        shell: bash
+        run: ./scripts/check.sh build
+
+      - name: Unit and contract tests
+        shell: bash
+        run: ./scripts/check.sh unit
+
+      - name: E2E tests
+        if: inputs.e2e_profile == 'standard'
+        shell: bash
+        run: ./scripts/check.sh e2e
+
+      - name: E2E tests with built-binary coverage
+        if: inputs.e2e_profile == 'paratranz-toolkit'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/e2ecov"
+          PARATRANZ_E2E_COVERDIR="${RUNNER_TEMP}/e2ecov" ./scripts/check.sh e2e
+          echo "::group::E2E binary coverage"
+          go tool covdata percent -i="${RUNNER_TEMP}/e2ecov"
+          echo "::endgroup::"
+
+      - name: Verify go mod tidy
+        shell: bash
+        run: ./scripts/check.sh tidy
+
+  lint:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Install pinned check tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+          go install mvdan.cc/gofumpt@v0.11.0
+          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+
+      - name: Check gofumpt formatting
+        run: ./scripts/check.sh fmt-check
+
+      - name: Run go vet
+        run: ./scripts/check.sh vet
+
+      - name: Run golangci-lint
+        run: ./scripts/check.sh lint
+
+      - name: Run staticcheck
+        run: ./scripts/check.sh staticcheck
+
+      - name: Run govulncheck
+        run: ./scripts/check.sh vuln
+
+  integration:
+    name: Translation Toolkit live integration
+    needs: build
+    if: >-
+      inputs.integration_profile == 'translation-toolkit' &&
+      (github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify CurseForge credentials are available
+        env:
+          CURSEFORGE_API_KEY: ${{ secrets.curseforge_api_key }}
+        shell: bash
+        run: |
+          if [ -z "$CURSEFORGE_API_KEY" ]; then
+            echo "::error::integration_profile=translation-toolkit 需要 curseforge_api_key secret"
+            exit 1
+          fi
+
+      - name: CurseForge live API tests (unit)
+        env:
+          INTEGRATION_TESTS: "1"
+          CURSEFORGE_API_KEY: ${{ secrets.curseforge_api_key }}
+        run: go test -v -race -timeout 300s -run 'TestCurseForgeLive' ./internal/platform/
+
+      - name: Integration tests (E2E)
+        env:
+          INTEGRATION_TESTS: "1"
+          CURSEFORGE_API_KEY: ${{ secrets.curseforge_api_key }}
+        run: go test -v -timeout 900s -run 'TestInitIntegration|TestSyncIntegration|TestDiffIntegration' ./e2e/
+
+  cross-compile:
+    name: Cross-compile release targets
+    needs: [build, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Cross-compile
+        env:
+          BINARY_NAME: ${{ inputs.binary_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          export CGO_ENABLED=0
+          ldflags="-s -w"
+          build_flags=(-trimpath -buildvcs=false)
+          GOOS=linux   GOARCH=amd64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-linux-amd64" .
+          GOOS=linux   GOARCH=arm64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-linux-arm64" .
+          GOOS=darwin  GOARCH=amd64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-darwin-amd64" .
+          GOOS=darwin  GOARCH=arm64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-darwin-arm64" .
+          GOOS=windows GOARCH=amd64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-windows-amd64.exe" .

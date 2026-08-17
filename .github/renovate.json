@@ -11,5 +11,14 @@
       "pinDigests": false,
       "enabled": false
     }
+  ],
+  "customManagers": [
+    {
+      "description": "更新 Go toolkit CI 以 go install 精確固定的 lint/test 工具",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/Toolkit-(?:CI|Security)\\.yml$/"],
+      "matchStrings": ["go install (?<depName>[^@\\s]+)@(?<currentValue>v[0-9][^\\s]*)"],
+      "datasourceTemplate": "go"
+    }
   ]
 }

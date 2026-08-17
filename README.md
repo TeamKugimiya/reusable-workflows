@@ -10,6 +10,14 @@
 
 <!-- workflows:start -->
 
+### 工具鏈
+
+| 工作流程 | 用途 |
+| --- | --- |
+| [Go Toolkit｜CI](docs/Toolkit-CI.md) | 以共同 gate 執行 Go toolkit 的三平台測試、靜態檢查、整合測試與跨平台編譯 |
+| [Go Toolkit｜發佈](docs/Toolkit-Release.md) | 驗證 release gate，依受限 toolkit profile 建構五平台 binary、SHA512SUMS、版本 smoke test 並建立 GitHub Release |
+| [Go Toolkit｜安全掃描](docs/Toolkit-Security.md) | 以免費工具執行 Go 弱點、SAST、依賴、設定與 secret 掃描，並封鎖新增 finding |
+
 ### 模組包
 
 | 工作流程 | 用途 |
@@ -33,5 +41,6 @@
 ## 文件
 
 - [開發指南](docs/development.md) — 新增 / 修改 workflow、文件產生流程、慣例
+- [Go toolkit caller 範例](docs/example/go-toolkit.md) — 三個 toolkit 的 CI、security 與 CLI release 薄 caller
 - [模組包呼叫端 workflow 範例](docs/example/modpack.md) — PR / main 驗證與手動打包發佈範例
 - [翻譯包呼叫端 workflow 範例](docs/example/translation-pack.md) — 驗證、建構與 matrix 逐版發佈範例
