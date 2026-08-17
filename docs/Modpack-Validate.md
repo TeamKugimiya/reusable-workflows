@@ -40,6 +40,8 @@ _無_
 ```yaml
 jobs:
   call:
+    permissions:
+      contents: read
     uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Validate.yml@v1
     with:
       format: <值>

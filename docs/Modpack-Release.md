@@ -42,6 +42,8 @@ _無_
 ```yaml
 jobs:
   call:
+    permissions:
+      contents: write
     uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Release.yml@v1
     with:
       artifact_pattern: <值>

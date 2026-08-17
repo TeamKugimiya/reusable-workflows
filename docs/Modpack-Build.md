@@ -39,6 +39,8 @@
 ```yaml
 jobs:
   call:
+    permissions:
+      contents: read
     uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Build.yml@v1
     with:
       build_target: <值>

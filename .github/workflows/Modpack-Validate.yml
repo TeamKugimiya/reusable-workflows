@@ -57,6 +57,8 @@ jobs:
         with:
           token: ${{ secrets.toolkit_token }}
           version: ${{ inputs.toolkit_version }}
+          # TODO: modpack-toolkit 發佈含 SHA512SUMS 的 release 後移除，改用預設驗證。
+          verify_checksum: false
 
       - name: 驗證模組包專案
         env:

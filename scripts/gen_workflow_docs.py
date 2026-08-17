@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.10"
 # dependencies = ["pyyaml"]
@@ -16,8 +16,8 @@
       <!-- workflows:end -->
 
 用法：
-  python scripts/gen_workflow_docs.py          # 產生 / 更新
-  python scripts/gen_workflow_docs.py --check  # CI：diff 不為零則 exit 1
+  uv run scripts/gen_workflow_docs.py          # 產生 / 更新
+  uv run scripts/gen_workflow_docs.py --check  # CI：diff 不為零則 exit 1
 """
 from __future__ import annotations
 
@@ -38,6 +38,25 @@ MARKER_START = "<!-- workflows:start -->"
 MARKER_END = "<!-- workflows:end -->"
 
 META_RE = re.compile(r"^#\s*(summary|category)\s*:\s*(.+?)\s*$", re.IGNORECASE)
+
+
+def required_permissions(data: dict[str, Any]) -> dict[str, str] | str:
+    """Return the highest permission each called job may request from its caller."""
+    top = data.get("permissions") or {}
+    if not isinstance(top, dict):
+        return top
+
+    rank = {"none": 0, "read": 1, "write": 2}
+    merged = dict(top)
+    for job in (data.get("jobs") or {}).values():
+        job_permissions = (job or {}).get("permissions") or {}
+        if not isinstance(job_permissions, dict):
+            continue
+        for scope, level in job_permissions.items():
+            current = merged.get(scope, "none")
+            if rank.get(str(level), -1) > rank.get(str(current), -1):
+                merged[scope] = level
+    return merged
 
 
 def parse_meta(text: str) -> dict[str, str]:
@@ -75,7 +94,7 @@ def load_workflows() -> list[dict[str, Any]]:
                 "inputs": (on["workflow_call"] or {}).get("inputs") or {},
                 "secrets": (on["workflow_call"] or {}).get("secrets") or {},
                 "outputs": (on["workflow_call"] or {}).get("outputs") or {},
-                "permissions": data.get("permissions") or {},
+                "permissions": required_permissions(data),
             }
         )
     return out
@@ -158,12 +177,20 @@ def render_doc(wf: dict[str, Any]) -> str:
         "```yaml",
         "jobs:",
         "  call:",
-        f"    uses: TeamKugimiya/reusable-workflows/.github/workflows/{wf['filename']}@v1",
-        "    with:",
     ]
+    if isinstance(permissions, dict) and permissions:
+        lines.append("    permissions:")
+        for key, value in permissions.items():
+            lines.append(f"      {key}: {value}")
+    lines.append(
+        f"    uses: TeamKugimiya/reusable-workflows/.github/workflows/{wf['filename']}@v1"
+    )
     required_inputs = [k for k, v in wf["inputs"].items() if (v or {}).get("required")]
-    for key in required_inputs or list(wf["inputs"].keys())[:1]:
-        lines.append(f"      {key}: <值>")
+    example_inputs = required_inputs or list(wf["inputs"].keys())[:1]
+    if example_inputs:
+        lines.append("    with:")
+        for key in example_inputs:
+            lines.append(f"      {key}: <值>")
     if wf["secrets"]:
         lines.append("    secrets:")
         for key in wf["secrets"].keys():
@@ -250,7 +277,7 @@ def main() -> int:
         if result.returncode != 0:
             print(
                 "docs/ 或 README.md 與 workflow 定義不同步，請於本機執行 "
-                "`python scripts/gen_workflow_docs.py` 後提交。",
+                "`uv run scripts/gen_workflow_docs.py` 後提交。",
                 file=sys.stderr,
             )
             return 1

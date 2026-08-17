@@ -18,7 +18,7 @@ on:
         required: false
         type: string
         default: ""
-        description: "要使用的 translation-toolkit release tag；留空抓 latest"
+        description: "要使用的 translation-toolkit release tag；留空抓 latest。安裝時會驗證 SHA512SUMS，因此必須是 ``v1.8.0`` 以後的版本"
       runs_on:
         required: false
         type: string

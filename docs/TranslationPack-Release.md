@@ -53,6 +53,8 @@
 ```yaml
 jobs:
   call:
+    permissions:
+      contents: write
     uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Release.yml@v1
     with:
       version: <值>

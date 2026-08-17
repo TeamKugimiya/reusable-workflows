@@ -12,6 +12,7 @@
 | 權限 | 等級 |
 | --- | --- |
 | `contents` | `read` |
+| `pull-requests` | `write` |
 
 ## Inputs
 
@@ -19,7 +20,7 @@
 | --- | --- | --- | --- | --- |
 | `pack_name` | `string` | ✅ | — | 翻譯包名稱，對應 translation-tool 的 --name，例如 ``ModsTranslationPack`` 或 ``ParaTranslationPack`` |
 | `version_group` | `string` | — | — | 指定要建構的版本群組（translation-tool 的 --version），留空則建置全部 |
-| `toolkit_version` | `string` | — | — | 要使用的 translation-toolkit release tag；留空抓 latest |
+| `toolkit_version` | `string` | — | — | 要使用的 translation-toolkit release tag；留空抓 latest。安裝時會驗證 SHA512SUMS，因此必須是 ``v1.8.0`` 以後的版本 |
 | `runs_on` | `string` | — | `blacksmith-4vcpu-ubuntu-2404-arm` | 執行環境，預設為 ``blacksmith-4vcpu-ubuntu-2404-arm`` |
 | `artifact_retention_days` | `number` | — | `3` | Artifact 保留天數，預設為 ``3`` |
 | `use_packsquash` | `boolean` | — | `true` | 是否安裝 PackSquash 進行最佳化壓縮，失敗時會自動 fallback 至標準 zip |
@@ -45,6 +46,9 @@
 ```yaml
 jobs:
   call:
+    permissions:
+      contents: read
+      pull-requests: write
     uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Build.yml@v1
     with:
       pack_name: <值>

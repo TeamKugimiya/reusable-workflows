@@ -9,10 +9,18 @@ inputs:
     required: false
     default: "false"
     description: "true 下載 translation-tool；false 下載 modpack-tool"
+  paratranz:
+    required: false
+    default: "false"
+    description: "true 下載 paratranz-tool；不可與 translation 同時啟用"
   version:
     required: false
     default: ""
     description: 要下載的 release tag；留空抓 latest
+  verify_checksum:
+    required: false
+    default: "true"
+    description: "預設要求 release 提供 SHA512SUMS 並在安裝前驗證 binary；只有尚未發佈 SHA512SUMS 的 toolkit 才可暫時傳 false"
 
 runs:
   using: composite
@@ -21,13 +29,27 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
+        IS_PARATRANZ: ${{ inputs.paratranz }}
         IS_TRANSLATION: ${{ inputs.translation }}
         TOOLKIT_VERSION: ${{ inputs.version }}
+        VERIFY_CHECKSUM: ${{ inputs.verify_checksum }}
       run: |
         set -euo pipefail
 
         if [ -z "${GH_TOKEN}" ]; then
           echo "::error::缺少 toolkit token；fork PR 不會傳遞 secrets，請改用同 repo 分支或設定有效 PAT"
+          exit 1
+        fi
+
+        for value in "${IS_TRANSLATION}" "${IS_PARATRANZ}" "${VERIFY_CHECKSUM}"; do
+          if [ "${value}" != "true" ] && [ "${value}" != "false" ]; then
+            echo "::error::translation、paratranz 與 verify_checksum 只能是 true 或 false"
+            exit 1
+          fi
+        done
+
+        if [ "${IS_TRANSLATION}" = "true" ] && [ "${IS_PARATRANZ}" = "true" ]; then
+          echo "::error::translation 與 paratranz 不可同時啟用"
           exit 1
         fi
 
@@ -40,7 +62,11 @@ runs:
             ;;
         esac
 
-        if [ "${IS_TRANSLATION}" = "true" ]; then
+        if [ "${IS_PARATRANZ}" = "true" ]; then
+          repo="TeamKugimiya/paratranz-toolkit"
+          asset="paratranz-tool-linux-${arch}"
+          bin="paratranz-tool"
+        elif [ "${IS_TRANSLATION}" = "true" ]; then
           repo="TeamKugimiya/translation-toolkit"
           asset="translation-tool-linux-${arch}"
           bin="translation-tool"
@@ -74,16 +100,40 @@ runs:
           exit 1
         fi
 
-        download_log="$(mktemp)"
-        if ! gh api "${asset_api_url}" --header "Accept: application/octet-stream" > "/usr/local/bin/${asset}" 2>"${download_log}"; then
+        download_dir="$(mktemp -d)"
+        download_log="${download_dir}/download.log"
+        trap 'rm -rf "${download_dir}"' EXIT
+
+        if ! gh api "${asset_api_url}" --header "Accept: application/octet-stream" > "${download_dir}/${asset}" 2>"${download_log}"; then
           echo "::error::無法下載 ${repo} 的 ${asset} asset。請確認 toolkit_token 可下載 ${repo} release assets。"
           cat "${download_log}" >&2
-          rm -f "${download_log}"
           exit 1
         fi
-        rm -f "${download_log}"
 
-        chmod +x "/usr/local/bin/${asset}"
-        mv "/usr/local/bin/${asset}" "/usr/local/bin/${bin}"
+        if [ "${VERIFY_CHECKSUM}" = "true" ]; then
+          checksum_asset="SHA512SUMS"
+          checksum_api_url="$(gh api "${release_endpoint}" --jq ".assets[] | select(.name == \"${checksum_asset}\") | .url")"
+          if [ -z "${checksum_api_url}" ]; then
+            echo "::error::${repo} 的 ${release_label} release 找不到 ${checksum_asset}，拒絕安裝未驗證 binary。"
+            exit 1
+          fi
+          if ! gh api "${checksum_api_url}" --header "Accept: application/octet-stream" > "${download_dir}/${checksum_asset}" 2>"${download_log}"; then
+            echo "::error::無法下載 ${repo} 的 ${checksum_asset}。"
+            cat "${download_log}" >&2
+            exit 1
+          fi
+
+          awk -v asset="${asset}" '$2 == asset { print }' "${download_dir}/${checksum_asset}" > "${download_dir}/SELECTED_SHA512SUM"
+          if [ "$(wc -l < "${download_dir}/SELECTED_SHA512SUM" | tr -d ' ')" != "1" ]; then
+            echo "::error::${checksum_asset} 必須恰好包含一筆 ${asset} checksum。"
+            exit 1
+          fi
+          (
+            cd "${download_dir}"
+            sha512sum -c SELECTED_SHA512SUM
+          )
+        fi
+
+        install -m 0755 "${download_dir}/${asset}" "/usr/local/bin/${bin}"
 
         "${bin}" version

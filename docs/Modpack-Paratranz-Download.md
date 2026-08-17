@@ -43,6 +43,9 @@
 ```yaml
 jobs:
   call:
+    permissions:
+      contents: write
+      pull-requests: write
     uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Paratranz-Download.yml@v1
     with:
       base_branch: <值>

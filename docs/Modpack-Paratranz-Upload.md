@@ -42,6 +42,8 @@ _無_
 ```yaml
 jobs:
   call:
+    permissions:
+      contents: read
     uses: TeamKugimiya/reusable-workflows/.github/workflows/Modpack-Paratranz-Upload.yml@v1
     with:
       dry_run: <值>
