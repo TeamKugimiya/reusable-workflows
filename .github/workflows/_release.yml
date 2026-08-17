@@ -17,7 +17,8 @@ jobs:
   release:
     runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     steps:
-      - name: Checkout
+      # 後續步驟需要推送 release tag 與 major tag，因此必須保留 checkout credentials。
+      - name: Checkout # zizmor: ignore[artipacked]
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0

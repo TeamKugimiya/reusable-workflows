@@ -112,7 +112,8 @@ jobs:
       # fetch-depth: 0 是必要的：changelog 需要 ``ci_latest..HEAD`` 的完整歷史。
       # 但 git log / describe / tag / push 都只碰 commit 物件，不碰 blob，因此用
       # blobless clone 省下翻譯檔歷史的傳輸量；matrix 逐版發佈時會 clone N 次。
-      - name: Checkout
+      # 後續步驟需要更新 ci_latest tag，因此必須保留 checkout credentials。
+      - name: Checkout # zizmor: ignore[artipacked]
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
