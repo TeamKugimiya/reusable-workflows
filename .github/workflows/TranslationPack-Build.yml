@@ -172,10 +172,16 @@ jobs:
           fi
 
       - name: 建構翻譯資源包
+        env:
+          PACK_NAME: ${{ inputs.pack_name }}
+          VERSION_GROUP: ${{ inputs.version_group }}
         run: |
-          translation-tool build \
-            --name "${{ inputs.pack_name }}" \
-            ${{ inputs.version_group != '' && format('--version {0}', inputs.version_group) || '' }}
+          set -euo pipefail
+          args=(build --name "$PACK_NAME")
+          if [ -n "$VERSION_GROUP" ]; then
+            args+=(--version "$VERSION_GROUP")
+          fi
+          translation-tool "${args[@]}"
 
       - name: 收集 zip 清單
         id: collect
