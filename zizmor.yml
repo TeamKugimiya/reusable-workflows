@@ -1,0 +1,10 @@
+# zizmor 稽核設定，由 `_zizmor.yml` 自動載入（container workdir 即 repo root）。
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # 本 repo 自己的 composite action 以 @v1 引用：digest pin 對同 repo 的 action
+        # 沒有保護作用，只會讓 action 改動必須先額外發一次版才生效。與
+        # `.github/renovate.json` 停用自身 digest pin 的規則對應。
+        # 未列出的 action 沿用 zizmor 預設的 hash-pin，包含其他 TeamKugimiya repo。
+        TeamKugimiya/reusable-workflows/*: ref-pin

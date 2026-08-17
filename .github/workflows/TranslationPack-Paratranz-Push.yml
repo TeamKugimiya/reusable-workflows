@@ -179,7 +179,7 @@ jobs:
       - name: 安裝 translation-tool
         # 同 repository 的 composite action 跟隨 reusable-workflows major tag；
         # digest pin 會讓 action 更新必須先額外發一次版。
-        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1 # zizmor: ignore[unpinned-uses]
+        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
         with:
           token: ${{ secrets.toolkit_token }}
           translation: true
@@ -187,7 +187,7 @@ jobs:
           verify_checksum: true
 
       - name: 安裝 paratranz-tool
-        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1 # zizmor: ignore[unpinned-uses]
+        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
         with:
           token: ${{ secrets.toolkit_token }}
           paratranz: true
