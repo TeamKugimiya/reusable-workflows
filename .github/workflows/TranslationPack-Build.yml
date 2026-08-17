@@ -34,6 +34,11 @@ on:
         type: boolean
         default: true
         description: "是否安裝 PackSquash 進行最佳化壓縮，失敗時會自動 fallback 至標準 zip"
+      packsquash_source:
+        required: false
+        type: string
+        default: "master"
+        description: "PackSquash 來源；``master`` 取最新 master build（unstable，安裝前以 GitHub build provenance 驗證），``release`` 取最新正式版"
       post_preview_comment:
         required: false
         type: boolean
@@ -81,26 +86,88 @@ jobs:
           version: ${{ inputs.toolkit_version }}
 
       - name: 安裝 PackSquash
+        id: packsquash
         if: ${{ inputs.use_packsquash }}
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          PACKSQUASH_SOURCE: ${{ inputs.packsquash_source }}
         run: |
           set -euo pipefail
 
           case "$(uname -m)" in
-            x86_64) asset="packsquash-x86_64-unknown-linux-gnu.zip" ;;
-            aarch64 | arm64) asset="packsquash-aarch64-unknown-linux-gnu.zip" ;;
+            x86_64)
+              release_asset="packsquash-x86_64-unknown-linux-gnu.zip"
+              ci_target="x86_64-unknown-linux-musl"
+              ;;
+            aarch64 | arm64)
+              release_asset="packsquash-aarch64-unknown-linux-gnu.zip"
+              ci_target="aarch64-unknown-linux-musl"
+              ;;
             *)
               echo "::error::不支援的 runner 架構：$(uname -m)"
               exit 1
               ;;
           esac
 
-          gh release download --repo ComunidadAylas/PackSquash \
-            --pattern "${asset}" --dir /tmp/packsquash
-          unzip -j "/tmp/packsquash/${asset}" packsquash -d /usr/local/bin
-          chmod +x /usr/local/bin/packsquash
+          work="$(mktemp -d)"
+          trap 'rm -rf "${work}"' EXIT
+
+          case "$PACKSQUASH_SOURCE" in
+            release)
+              gh release download --repo ComunidadAylas/PackSquash \
+                --pattern "${release_asset}" --dir "$work"
+              unzip -j "${work}/${release_asset}" packsquash -d "$work"
+              resolved="$(gh release view --repo ComunidadAylas/PackSquash --json tagName --jq '.tagName')"
+              ;;
+            master)
+              # PackSquash 的 CI 只為 musl target 上傳 raw executable，glibc target 只出 .deb；
+              # musl build 是靜態連結，對 runner 反而更沒有 glibc 版本耦合。
+              #
+              # 不使用 ghcr 的 edge tag：該 image 只在 push 的 actor 具備 write 權限時才會
+              # 推上去，經由 merge queue 或 bot 進入 master 的 commit 不會產生 image，
+              # edge 因此會落後 master 不特定的距離。
+              #
+              # nightly.link 提供免認證下載（GitHub 的 artifact API 跨 repo 需要 PAT）。
+              # 該服務為第三方，但 binary 隨後會以 GitHub build provenance 驗證，
+              # 驗證失敗就不會安裝，因此不需要信任該服務本身。
+              curl --fail --silent --show-error --location \
+                --output "${work}/packsquash.zip" \
+                "https://nightly.link/ComunidadAylas/PackSquash/workflows/ci/master/PackSquash%20CLI%20executable%20(${ci_target}).zip"
+              unzip -j "${work}/packsquash.zip" packsquash -d "$work"
+              gh attestation verify "${work}/packsquash" \
+                --repo ComunidadAylas/PackSquash \
+                --signer-workflow ComunidadAylas/PackSquash/.github/workflows/ci.yml \
+                --format json > "${work}/attestation.json"
+              resolved="master@$(jq -r \
+                '.[0].verificationResult.statement.predicate.buildDefinition.resolvedDependencies[0].digest.gitCommit[0:7]' \
+                "${work}/attestation.json")"
+              ;;
+            *)
+              echo "::error::packsquash_source 必須是 release 或 master"
+              exit 1
+              ;;
+          esac
+
+          install -m 0755 "${work}/packsquash" /usr/local/bin/packsquash
+          echo "resolved=${resolved}" >> "$GITHUB_OUTPUT"
+
+      - name: 記錄 PackSquash 來源
+        # 只在安裝步驟真的跑過時才記錄；建構前段失敗時不寫誤導性的 summary。
+        if: ${{ always() && steps.packsquash.outcome != '' && steps.packsquash.outcome != 'skipped' }}
+        env:
+          PACKSQUASH_OUTCOME: ${{ steps.packsquash.outcome }}
+          PACKSQUASH_RESOLVED: ${{ steps.packsquash.outputs.resolved }}
+          PACKSQUASH_SOURCE: ${{ inputs.packsquash_source }}
+        run: |
+          set -euo pipefail
+          if [ "$PACKSQUASH_OUTCOME" = success ]; then
+            printf '## PackSquash\n\n來源 `%s`，版本 `%s`。\n' \
+              "$PACKSQUASH_SOURCE" "$PACKSQUASH_RESOLVED" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '## PackSquash\n\n:warning: 安裝失敗（來源 `%s`），本次改用標準 zip 壓縮，資源包未經最佳化。\n' \
+              "$PACKSQUASH_SOURCE" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: 建構翻譯資源包
         run: |

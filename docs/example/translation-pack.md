@@ -194,6 +194,16 @@ jobs:
 
 > `modrinth_id` / `curseforge_id` / `project_id` 留空可關閉對應平台發佈。設定 `project_id` 時必填 `anvil_api_token`；設定 `modrinth_id` / `curseforge_id` 時各自需要對應 token。
 
+### PackSquash 來源
+
+`packsquash_source` 預設 `master`，取 PackSquash CI 在 `master` 上最新一次成功建構的靜態 musl binary。最新正式版 v0.4.1 發於 2026-01-01，`master` 已領先 51 個 commit 且沒有任何 prerelease，翻譯包需要的功能只存在於 `master`。要退回正式版時傳 `release`。
+
+`master` 是官方定義的 unstable build，可能含有未文件化或破壞性的變更；換句話說壓縮結果與 CLI 行為都可能在兩次建構之間改變。安裝前一定會以 GitHub build provenance（SLSA attestation）驗證，並限定簽署者必須是 PackSquash 自己的 `ci.yml`，驗證不過就不會進 `PATH`。
+
+不使用 ghcr 的 `edge` image：那個 tag 只在推 commit 的 actor 具備 write 權限時才會更新，經由 merge queue 或 bot 進入 `master` 的 commit 不會產生 image，因此 `edge` 會落後 `master` 不特定的距離。
+
+無論哪個來源，PackSquash 安裝失敗都只會 fallback 成標準 zip 而不會讓建構失敗，因此請看 job summary 的 PackSquash 區塊確認實際使用的來源與版本。
+
 ### 版本號與版本名稱
 
 `release_version` 與 `release_name` 由呼叫端決定，因為命名慣例是各翻譯包自己的事（例如模組翻譯包用 `git-<短 SHA>`，正式版改用 `v1.9.3`）。兩者不能共用同一個值：

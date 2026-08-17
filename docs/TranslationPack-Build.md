@@ -24,6 +24,7 @@
 | `runs_on` | `string` | — | `blacksmith-4vcpu-ubuntu-2404-arm` | 執行環境，預設為 ``blacksmith-4vcpu-ubuntu-2404-arm`` |
 | `artifact_retention_days` | `number` | — | `3` | Artifact 保留天數，預設為 ``3`` |
 | `use_packsquash` | `boolean` | — | `true` | 是否安裝 PackSquash 進行最佳化壓縮，失敗時會自動 fallback 至標準 zip |
+| `packsquash_source` | `string` | — | `master` | PackSquash 來源；``master`` 取最新 master build（unstable，安裝前以 GitHub build provenance 驗證），``release`` 取最新正式版 |
 | `post_preview_comment` | `boolean` | — | `false` | PR 觸發時是否貼出 nightly.link 免登入下載連結留言（同一個 PR 會就地更新而非重複貼）；呼叫端必須在該 job 授權 ``pull-requests: write``，權限不足時留言步驟會失敗但不影響建構結果 |
 
 ## Outputs
