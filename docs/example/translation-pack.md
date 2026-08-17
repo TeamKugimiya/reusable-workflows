@@ -4,6 +4,109 @@
 
 > **Fork PR 注意**：GitHub 不會把 secrets 傳給來自 fork 的 PR。下方驗證範例對 fork 貢獻者的 PR 會因 `toolkit_token` 為空而失敗。若 repo 為公開且需接受外部 PR，請改用同 repo 分支流程，或自行評估 `pull_request_target` 的安全風險。
 
+## ParaTranz：來源與譯文的完整循環
+
+ParaTranz 翻譯包使用兩條獨立 reusable workflow：
+
+- `TranslationPack-Paratranz-Push.yml`：以 `translation-tool` 更新模組原文，並以 `paratranz-tool` 將已提交的 source 推到 ParaTranz。
+- `TranslationPack-Paratranz-Pull.yml`：產生新 artifact、拉回 `zh_tw.json`、更新進度、驗證與建構，最後建立翻譯 PR。
+
+兩條 workflow 都要求明確指定 `paratranz_toolkit_version`，且安裝時會驗證 release 的 `SHA512SUMS`。`PARATRANZ_TOKEN` 只存在於同步 job；建立 PR 的 job 不會取得該 secret。兩條 caller 必須傳入相同的 `concurrency_group`，避免同一 ParaTranz project 的 Push 與 Pull 交錯。
+
+### 來源更新：先 PR，合併後才 Push
+
+排程偵測上游模組變更時先設 `apply: false`，只建立 source PR。該 PR 合併進 `main` 後，再由 `push` event 以 `sync_sources: false`、`apply: true` 把已提交的 canonical source 寫入 ParaTranz：
+
+```yaml
+name: ParaTranz Source Sync
+
+on:
+  schedule:
+    - cron: "20 18 * * 1"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/paratranz-source.yml"
+      - "Translation/**/en_us.json"
+      - "Translation/**/metadata.json"
+      - "config/paratranz.json"
+      - "config/paratranz-files.json"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  discover:
+    if: github.event_name != 'push'
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Paratranz-Push.yml@v1
+    with:
+      sync_sources: true
+      apply: false
+      create_pull_request: true
+      paratranz_toolkit_version: v1.0.0
+      concurrency_group: project-9900
+    secrets:
+      toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}
+      paratranz_token: ${{ secrets.PARATRANZ_TOKEN }}
+      curseforge_api_key: ${{ secrets.CURSEFORGE_API_KEY }}
+
+  push-merged-source:
+    if: github.event_name == 'push'
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Paratranz-Push.yml@v1
+    with:
+      sync_sources: false
+      apply: true
+      create_pull_request: false
+      paratranz_toolkit_version: v1.0.0
+      concurrency_group: project-9900
+    secrets:
+      toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}
+      paratranz_token: ${{ secrets.PARATRANZ_TOKEN }}
+```
+
+> `paratranz-tool` 目前只會 apply 已有 `file_id` 且遠端路徑一致的 source update。全新模組與 path reconciliation 會出現在 dry-run report，但在任何 mutation 前 fail closed；不可用 workflow shell command 繞過此安全閘門。
+
+### 譯文更新：Artifact → `zh_tw.json` PR
+
+```yaml
+name: ParaTranz Translation Sync
+
+on:
+  schedule:
+    - cron: "20 18 * * 4"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  pull:
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Paratranz-Pull.yml@v1
+    with:
+      pack_name: ParaTranslationPack
+      generate_artifact: true
+      create_pull_request: true
+      paratranz_toolkit_version: v1.0.0
+      concurrency_group: project-9900
+    secrets:
+      toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}
+      paratranz_token: ${{ secrets.PARATRANZ_TOKEN }}
+```
+
+有差異時，Pull workflow 只允許提交 `Translation/**/zh_tw.json` 與 `Translation/**/metadata.json`，並在建立 PR 前完成：
+
+1. artifact generation read-after-write；
+2. translation pull dry-run 與 apply；
+3. 相同 artifact 的 no-op 重跑；
+4. `translation-tool progress`；
+5. `translation-tool doctor --strict`；
+6. 資源包 build 與 ZIP 完整性檢查。
+
+PR 合併後再由既有的 TranslationPack Build／Release caller 發布；同步 job 本身不直接發布。
+
 ## 驗證：PR 與 main 都檢查
 
 ```yaml

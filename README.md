@@ -33,6 +33,8 @@
 | 工作流程 | 用途 |
 | --- | --- |
 | [翻譯包｜建構](docs/TranslationPack-Build.md) | 透過 translation-toolkit 建構翻譯資源包並上傳為 Artifact |
+| [翻譯包｜ParaTranz 譯文同步](docs/TranslationPack-Paratranz-Pull.md) | 產生 ParaTranz artifact、拉回 zh_tw、完整驗證後由獨立 Git job 建立翻譯 PR |
+| [翻譯包｜ParaTranz 原文同步](docs/TranslationPack-Paratranz-Push.md) | 更新翻譯包原文、同步至 ParaTranz，並以獨立 Git job 建立來源更新 PR |
 | [翻譯包｜發佈](docs/TranslationPack-Release.md) | 下載翻譯資源包 Artifact 並發佈至 Anvil、Modrinth 與 CurseForge |
 | [翻譯包｜驗證](docs/TranslationPack-Validate.md) | 透過 translation-toolkit doctor 驗證翻譯專案健康狀態 |
 

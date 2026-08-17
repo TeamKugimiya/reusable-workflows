@@ -1,0 +1,598 @@
+# summary: 產生 ParaTranz artifact、拉回 zh_tw、完整驗證後由獨立 Git job 建立翻譯 PR
+# category: 翻譯包
+name: 翻譯包｜ParaTranz 譯文同步
+
+on:
+  workflow_call:
+    inputs:
+      pack_name:
+        required: true
+        type: string
+        description: "翻譯包名稱，供 translation-tool build 使用"
+      project_path:
+        required: false
+        type: string
+        default: "."
+        description: "翻譯專案根目錄；必須是 repository 內的相對路徑"
+      config_path:
+        required: false
+        type: string
+        default: "config/paratranz.json"
+        description: "相對於 project_path 的 ParaTranz config 路徑"
+      manifest_path:
+        required: false
+        type: string
+        default: "config/paratranz-files.json"
+        description: "相對於 project_path 的 ParaTranz identity manifest 路徑"
+      content_id:
+        required: false
+        type: string
+        default: ""
+        description: "只處理完全匹配的 content ID；留空處理全部 current content"
+      generate_artifact:
+        required: false
+        type: boolean
+        default: true
+        description: "Pull 前是否要求 ParaTranz 產生並確認一份新 artifact"
+      artifact_wait_timeout:
+        required: false
+        type: string
+        default: "10m"
+        description: "等待新 artifact 的期限，須符合 paratranz-tool 的 5s 至 30m 限制"
+      version_group:
+        required: false
+        type: string
+        default: ""
+        description: "Build smoke test 限定的版本群組；留空建置全部"
+      create_pull_request:
+        required: false
+        type: boolean
+        default: true
+        description: "有翻譯差異時是否建立或更新 PR"
+      base_branch:
+        required: false
+        type: string
+        default: "main"
+        description: "checkout 與自動更新 PR 的目標分支"
+      translation_toolkit_version:
+        required: false
+        type: string
+        default: "v1.8.0"
+        description: "固定的 translation-toolkit release tag"
+      paratranz_toolkit_version:
+        required: true
+        type: string
+        description: "固定的 paratranz-toolkit release tag；該 release 必須包含 SHA512SUMS"
+      concurrency_group:
+        required: false
+        type: string
+        default: "default"
+        description: "同一 ParaTranz project 的 Push／Pull 呼叫必須使用相同值"
+      runs_on:
+        required: false
+        type: string
+        default: "blacksmith-4vcpu-ubuntu-2404-arm"
+        description: "執行環境"
+      report_retention_days:
+        required: false
+        type: number
+        default: 14
+        description: "Sanitized JSON report 與 repository patch Artifact 保留天數"
+    secrets:
+      toolkit_token:
+        required: true
+        description: "下載私人 toolkit release 的 PAT（需 repo 權限）"
+      paratranz_token:
+        required: true
+        description: "ParaTranz API token；只注入 translation sync job"
+    outputs:
+      changed:
+        description: "最新 ParaTranz artifact plan 是否偵測到譯文差異"
+        value: ${{ jobs.sync.outputs.changed }}
+      repository_changed:
+        description: "套用 pull 後是否真的產生 repository translation 差異；PR 以此為準"
+        value: ${{ jobs.sync.outputs.repository_changed }}
+      artifact_id:
+        description: "本次 pull 使用的 ParaTranz artifact ID"
+        value: ${{ jobs.sync.outputs.artifact_id }}
+      changed_files:
+        description: "本次 pull 的 translation changed file 數"
+        value: ${{ jobs.sync.outputs.changed_files }}
+      updated_keys:
+        description: "本次 pull 的 updated key 數"
+        value: ${{ jobs.sync.outputs.updated_keys }}
+      branch:
+        description: "有建立或更新 PR 時的 branch"
+        value: ${{ jobs.create-pr.outputs.branch }}
+      pull_request_url:
+        description: "有建立或更新 PR 時的 URL"
+        value: ${{ jobs.create-pr.outputs.pull_request_url }}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paratranz-${{ github.repository }}-${{ inputs.concurrency_group }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: 拉回並驗證 ParaTranz 譯文
+    runs-on: ${{ inputs.runs_on }}
+    outputs:
+      artifact_id: ${{ steps.pull-plan.outputs.artifact_id }}
+      base_sha: ${{ steps.repository-state.outputs.base_sha }}
+      changed: ${{ steps.pull-plan.outputs.changed }}
+      changed_files: ${{ steps.pull-plan.outputs.changed_files }}
+      repository_changed: ${{ steps.repository-state.outputs.changed }}
+      state_artifact: ${{ steps.repository-state.outputs.artifact_name }}
+      updated_keys: ${{ steps.pull-plan.outputs.updated_keys }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 驗證 workflow inputs
+        env:
+          ARTIFACT_WAIT_TIMEOUT: ${{ inputs.artifact_wait_timeout }}
+          BASE_BRANCH: ${{ inputs.base_branch }}
+          CONFIG_PATH: ${{ inputs.config_path }}
+          CONCURRENCY_GROUP: ${{ inputs.concurrency_group }}
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+          PACK_NAME: ${{ inputs.pack_name }}
+          PARATRANZ_TOOLKIT_VERSION: ${{ inputs.paratranz_toolkit_version }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+          TRANSLATION_TOOLKIT_VERSION: ${{ inputs.translation_toolkit_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          validate_relative_path() {
+            local label="$1"
+            local value="$2"
+            local allow_dot="$3"
+
+            if [ "$allow_dot" = "true" ] && [ "$value" = "." ]; then
+              return
+            fi
+            if [ -z "$value" ] || [[ "$value" = /* ]] || [[ "$value" == *$'\n'* ]]; then
+              echo "::error::${label} 必須是非空、單行的 repository-relative path"
+              exit 1
+            fi
+
+            IFS='/' read -r -a segments <<< "$value"
+            for segment in "${segments[@]}"; do
+              if [ -z "$segment" ] || [ "$segment" = "." ] || [ "$segment" = ".." ]; then
+                echo "::error::${label} 含不安全 path segment：${value}"
+                exit 1
+              fi
+            done
+          }
+
+          validate_relative_path project_path "$PROJECT_PATH" true
+          validate_relative_path config_path "$CONFIG_PATH" false
+          validate_relative_path manifest_path "$MANIFEST_PATH" false
+
+          for value in "$ARTIFACT_WAIT_TIMEOUT" "$BASE_BRANCH" "$CONCURRENCY_GROUP" "$PACK_NAME" "$PARATRANZ_TOOLKIT_VERSION" "$TRANSLATION_TOOLKIT_VERSION"; do
+            if [ -z "$value" ] || [[ "$value" == *$'\n'* ]]; then
+              echo "::error::pack、branch、timeout、concurrency group 與 toolkit versions 不可為空或含換行"
+              exit 1
+            fi
+          done
+
+          if [ ! -d "$PROJECT_PATH" ]; then
+            echo "::error::找不到 project_path：${PROJECT_PATH}"
+            exit 1
+          fi
+
+      - name: 準備 report 目錄
+        shell: bash
+        run: mkdir -p "${RUNNER_TEMP}/paratranz-pull-reports" "${RUNNER_TEMP}/paratranz-pull-state" "${RUNNER_TEMP}/translation-build"
+
+      - name: 安裝 translation-tool
+        # 同 repository 的 composite action 跟隨 reusable-workflows major tag；
+        # digest pin 會讓 action 更新必須先額外發一次版。
+        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1 # zizmor: ignore[unpinned-uses]
+        with:
+          token: ${{ secrets.toolkit_token }}
+          translation: true
+          version: ${{ inputs.translation_toolkit_version }}
+          verify_checksum: true
+
+      - name: 安裝 paratranz-tool
+        uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1 # zizmor: ignore[unpinned-uses]
+        with:
+          token: ${{ secrets.toolkit_token }}
+          paratranz: true
+          version: ${{ inputs.paratranz_toolkit_version }}
+          verify_checksum: true
+
+      - name: 記錄工具版本
+        shell: bash
+        run: |
+          set -euo pipefail
+          translation-tool version --format json > "${RUNNER_TEMP}/paratranz-pull-reports/translation-tool-version.json"
+          paratranz-tool --format json version > "${RUNNER_TEMP}/paratranz-pull-reports/paratranz-tool-version.json"
+
+      - name: 驗證 repository 與 ParaTranz identity
+        env:
+          CONFIG_PATH: ${{ inputs.config_path }}
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+          PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          translation-tool doctor --path "$PROJECT_PATH" --strict
+          paratranz-tool \
+            --path "$PROJECT_PATH" \
+            --config "$CONFIG_PATH" \
+            --manifest "$MANIFEST_PATH" \
+            --format json \
+            doctor --remote \
+            > "${RUNNER_TEMP}/paratranz-pull-reports/doctor-before.json"
+          jq -e '.ok == true' "${RUNNER_TEMP}/paratranz-pull-reports/doctor-before.json" >/dev/null
+
+      - name: 讀取目前 artifact
+        env:
+          CONFIG_PATH: ${{ inputs.config_path }}
+          PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="${RUNNER_TEMP}/paratranz-pull-reports/artifact-plan.json"
+          paratranz-tool \
+            --path "$PROJECT_PATH" \
+            --config "$CONFIG_PATH" \
+            --format json \
+            sync generate-artifact --dry-run \
+            > "$report"
+          jq -e '.operation == "sync_generate_artifact" and .mode == "dry_run" and .ok == true' "$report" >/dev/null
+
+      - name: 產生新的 ParaTranz artifact
+        if: ${{ inputs.generate_artifact }}
+        env:
+          ARTIFACT_WAIT_TIMEOUT: ${{ inputs.artifact_wait_timeout }}
+          CONFIG_PATH: ${{ inputs.config_path }}
+          PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="${RUNNER_TEMP}/paratranz-pull-reports/artifact-apply.json"
+          paratranz-tool \
+            --path "$PROJECT_PATH" \
+            --config "$CONFIG_PATH" \
+            --format json \
+            sync generate-artifact --apply --wait-timeout "$ARTIFACT_WAIT_TIMEOUT" \
+            > "$report"
+          jq -e '.operation == "sync_generate_artifact" and .mode == "apply" and .ok == true and .status == "confirmed" and .artifact.id > 0' "$report" >/dev/null
+
+      - name: 規劃 translation pull
+        id: pull-plan
+        env:
+          CONFIG_PATH: ${{ inputs.config_path }}
+          CONTENT_ID: ${{ inputs.content_id }}
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+          PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="${RUNNER_TEMP}/paratranz-pull-reports/pull-plan.json"
+          args=(
+            --path "$PROJECT_PATH"
+            --config "$CONFIG_PATH"
+            --manifest "$MANIFEST_PATH"
+            --format json
+            sync pull-translation --dry-run
+          )
+          if [ -n "$CONTENT_ID" ]; then
+            args+=(--content-id "$CONTENT_ID")
+          fi
+          paratranz-tool "${args[@]}" > "$report"
+          jq -e '.operation == "sync_pull_translation" and .mode == "dry_run" and .ok == true and .counts.unknown_files == 0 and .counts.pending_files == 0' "$report" >/dev/null
+          {
+            echo "artifact_id=$(jq -r '.artifact_id' "$report")"
+            echo "changed=$(jq -r '.changed' "$report")"
+            echo "changed_files=$(jq -r '.counts.changed_files' "$report")"
+            echo "updated_keys=$(jq -r '.counts.updated_keys' "$report")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 套用 translation pull
+        if: ${{ steps.pull-plan.outputs.changed == 'true' }}
+        env:
+          CONFIG_PATH: ${{ inputs.config_path }}
+          CONTENT_ID: ${{ inputs.content_id }}
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+          PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="${RUNNER_TEMP}/paratranz-pull-reports/pull-apply.json"
+          args=(
+            --path "$PROJECT_PATH"
+            --config "$CONFIG_PATH"
+            --manifest "$MANIFEST_PATH"
+            --format json
+            sync pull-translation --apply
+          )
+          if [ -n "$CONTENT_ID" ]; then
+            args+=(--content-id "$CONTENT_ID")
+          fi
+          paratranz-tool "${args[@]}" > "$report"
+          jq -e '.operation == "sync_pull_translation" and .mode == "apply" and .ok == true and .counts.unknown_files == 0 and .counts.pending_files == 0' "$report" >/dev/null
+
+      - name: 更新翻譯進度並執行完整驗證
+        if: ${{ steps.pull-plan.outputs.changed == 'true' }}
+        env:
+          PACK_NAME: ${{ inputs.pack_name }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+          VERSION_GROUP: ${{ inputs.version_group }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          translation-tool progress --path "$PROJECT_PATH"
+          translation-tool doctor --path "$PROJECT_PATH" --strict
+
+          args=(build --path "$PROJECT_PATH" --name "$PACK_NAME" --output "${RUNNER_TEMP}/translation-build")
+          if [ -n "$VERSION_GROUP" ]; then
+            args+=(--version "$VERSION_GROUP")
+          fi
+          translation-tool "${args[@]}"
+
+          archive_count=0
+          while IFS= read -r -d '' archive; do
+            unzip -tqq "$archive"
+            archive_count=$((archive_count + 1))
+          done < <(find "${RUNNER_TEMP}/translation-build" -type f -name '*.zip' -print0)
+          if [ "$archive_count" -eq 0 ]; then
+            echo "::error::build smoke test 沒有產生任何 zip"
+            exit 1
+          fi
+
+      - name: 確認 translation pull 已收斂
+        if: ${{ steps.pull-plan.outputs.changed == 'true' }}
+        env:
+          CONFIG_PATH: ${{ inputs.config_path }}
+          CONTENT_ID: ${{ inputs.content_id }}
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+          PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="${RUNNER_TEMP}/paratranz-pull-reports/pull-confirm.json"
+          args=(
+            --path "$PROJECT_PATH"
+            --config "$CONFIG_PATH"
+            --manifest "$MANIFEST_PATH"
+            --format json
+            sync pull-translation --dry-run
+          )
+          if [ -n "$CONTENT_ID" ]; then
+            args+=(--content-id "$CONTENT_ID")
+          fi
+          paratranz-tool "${args[@]}" > "$report"
+          jq -e '.operation == "sync_pull_translation" and .mode == "dry_run" and .ok == true and .changed == false and .counts.changed_files == 0' "$report" >/dev/null
+
+      - name: 封裝 repository translation 差異
+        id: repository-state
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          state_dir="${RUNNER_TEMP}/paratranz-pull-state"
+          artifact_name="paratranz-pull-state-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          base_sha="$(git rev-parse HEAD)"
+
+          # -z 與 core.quotepath=false：非 ASCII 路徑不會被引號跳脫，否則會誤判成非 Translation 變更。
+          git -c core.quotepath=false status --porcelain -z --untracked-files=all \
+            > "${RUNNER_TEMP}/repository-status.txt"
+          if [ ! -s "${RUNNER_TEMP}/repository-status.txt" ]; then
+            {
+              echo "base_sha=${base_sha}"
+              echo "changed=false"
+              echo "artifact_name=${artifact_name}"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$PROJECT_PATH" = "." ]; then
+            allowed_prefix="Translation/"
+          else
+            allowed_prefix="${PROJECT_PATH%/}/Translation/"
+          fi
+
+          while IFS= read -r -d '' entry; do
+            status="${entry:0:2}"
+            path="${entry:3}"
+            # -z 模式的 rename／copy 會把來源路徑放在下一個欄位，此處直接 fail closed。
+            case "$status" in
+              R* | *R | C* | *C)
+                echo "::error::translation pull 不接受 rename：${path}"
+                exit 1
+                ;;
+            esac
+            if [[ "$path" != "$allowed_prefix"* ]]; then
+              echo "::error::translation pull 產生非 Translation 路徑變更：${path}"
+              exit 1
+            fi
+            relative_path="${path#"$allowed_prefix"}"
+            case "$relative_path" in
+              */zh_tw.json | */metadata.json) ;;
+              *)
+                echo "::error::translation pull 產生非允許路徑變更：${path}"
+                exit 1
+                ;;
+            esac
+          done < "${RUNNER_TEMP}/repository-status.txt"
+
+          git -C "$PROJECT_PATH" add -- Translation
+          git diff --cached --binary --full-index > "${state_dir}/repository.patch"
+          if [ ! -s "${state_dir}/repository.patch" ]; then
+            echo "::error::偵測到 repository 狀態，但沒有可封裝的 Translation patch"
+            exit 1
+          fi
+
+          printf '%s\n' "$base_sha" > "${state_dir}/base-sha.txt"
+          cp "${RUNNER_TEMP}/paratranz-pull-reports/"*.json "$state_dir/"
+          (
+            cd "$state_dir"
+            sha512sum repository.patch > SHA512SUMS
+          )
+
+          {
+            echo "base_sha=${base_sha}"
+            echo "changed=true"
+            echo "artifact_name=${artifact_name}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 上傳 sanitized operation reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: paratranz-pull-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/paratranz-pull-reports/*.json
+          if-no-files-found: warn
+          retention-days: ${{ inputs.report_retention_days }}
+
+      - name: 上傳 repository translation patch
+        if: ${{ steps.repository-state.outputs.changed == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.repository-state.outputs.artifact_name }}
+          path: ${{ runner.temp }}/paratranz-pull-state
+          if-no-files-found: error
+          retention-days: ${{ inputs.report_retention_days }}
+
+      - name: 輸出 ParaTranz translation summary
+        if: ${{ always() }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          report="${RUNNER_TEMP}/paratranz-pull-reports/pull-apply.json"
+          if [ ! -s "$report" ]; then
+            report="${RUNNER_TEMP}/paratranz-pull-reports/pull-plan.json"
+          fi
+          if [ ! -s "$report" ]; then
+            printf '## ParaTranz translation sync\n\n尚未產生有效 report。\n' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          jq -r '
+            "## ParaTranz translation sync\n\n"
+            + "| mode | artifact | files | changed | published | unknown | pending | updated keys | placeholders |\n"
+            + "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n"
+            + "| `" + .mode + "` | " + (.artifact_id | tostring)
+            + " | " + (.counts.files | tostring)
+            + " | " + (.counts.changed_files | tostring)
+            + " | " + (.counts.published_files | tostring)
+            + " | " + (.counts.unknown_files | tostring)
+            + " | " + (.counts.pending_files | tostring)
+            + " | " + (.counts.updated_keys | tostring)
+            + " | " + (.counts.placeholders | tostring) + " |\n\n"
+            + "Artifact SHA-256: `" + .artifact_sha256 + "`  \n"
+            + "Plan SHA-256: `" + .plan_sha256 + "`\n"
+          ' "$report" >> "$GITHUB_STEP_SUMMARY"
+
+  create-pr:
+    name: 建立翻譯更新 PR
+    needs: sync
+    if: ${{ needs.sync.outputs.repository_changed == 'true' && inputs.create_pull_request }}
+    runs-on: ${{ inputs.runs_on }}
+    # 這個 job 不持有 PARATRANZ_TOKEN；write 權限只用於 bot branch 與 PR。
+    permissions:
+      # create-pull-request 建立／更新 automation branch。
+      contents: write
+      # create-pull-request 建立／更新對 base branch 的 PR。
+      pull-requests: write
+    outputs:
+      branch: ${{ steps.cpr.outputs.pull-request-branch || '' }}
+      pull_request_url: ${{ steps.cpr.outputs.pull-request-url || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 下載已驗證 translation patch
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.sync.outputs.state_artifact }}
+          path: ${{ runner.temp }}/paratranz-pull-state
+
+      - name: 驗證並套用 translation patch
+        env:
+          EXPECTED_BASE_SHA: ${{ needs.sync.outputs.base_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          state_dir="${RUNNER_TEMP}/paratranz-pull-state"
+          expected_base="$(cat "${state_dir}/base-sha.txt")"
+          actual_base="$(git rev-parse HEAD)"
+          if [ "$actual_base" != "$expected_base" ] || [ "$actual_base" != "$EXPECTED_BASE_SHA" ]; then
+            echo "::error::base branch 在同步 jobs 之間已漂移；請重跑 workflow"
+            exit 1
+          fi
+          (
+            cd "$state_dir"
+            sha512sum -c SHA512SUMS
+          )
+          git apply --check "${state_dir}/repository.patch"
+          git apply "${state_dir}/repository.patch"
+
+      - name: 產生 Pull Request 內容
+        id: pr-body
+        shell: bash
+        run: |
+          set -euo pipefail
+          state_dir="${RUNNER_TEMP}/paratranz-pull-state"
+          report="${state_dir}/pull-apply.json"
+          translation_version="$(jq -r '.version + " (`" + .commit[0:7] + "`)"' "${state_dir}/translation-tool-version.json")"
+          paratranz_version="$(jq -r '.version + " (`" + .commit[0:7] + "`)"' "${state_dir}/paratranz-tool-version.json")"
+          body_path="${RUNNER_TEMP}/paratranz-pull-pr-body.md"
+
+          jq -r \
+            --arg translation_version "$translation_version" \
+            --arg paratranz_version "$paratranz_version" '
+              "## ParaTranz 翻譯同步\n\n"
+              + "| 項目 | 值 |\n| --- | --- |\n"
+              + "| ParaTranz project | `" + (.project_id | tostring) + "` |\n"
+              + "| Artifact ID | `" + (.artifact_id | tostring) + "` |\n"
+              + "| Artifact 建立時間 | `" + .artifact_created_at + "` |\n"
+              + "| Changed files | " + (.counts.changed_files | tostring) + " |\n"
+              + "| Added keys | " + (.counts.added_keys | tostring) + " |\n"
+              + "| Updated keys | " + (.counts.updated_keys | tostring) + " |\n"
+              + "| Removed keys | " + (.counts.removed_keys | tostring) + " |\n"
+              + "| Placeholders | " + (.counts.placeholders | tostring) + " |\n"
+              + "| Artifact SHA-256 | `" + .artifact_sha256 + "` |\n"
+              + "| Plan SHA-256 | `" + .plan_sha256 + "` |\n"
+              + "| paratranz-tool | " + $paratranz_version + " |\n"
+              + "| translation-tool | " + $translation_version + " |\n\n"
+              + "> 此 patch 已通過 translation pull no-op 重跑、progress、strict doctor、build 與 ZIP 完整性檢查。合併後才可觸發正式發布。\n"
+            ' "$report" > "$body_path"
+          echo "path=$body_path" >> "$GITHUB_OUTPUT"
+
+      - name: 建立或更新 Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          base: ${{ inputs.base_branch }}
+          branch: automation/paratranz-translation-sync
+          delete-branch: true
+          commit-message: "chore(translations): sync latest ParaTranz artifact"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          title: "chore(translations): sync latest ParaTranz artifact"
+          body-path: ${{ steps.pr-body.outputs.path }}
+          add-paths: |
+            ${{ inputs.project_path }}/Translation
