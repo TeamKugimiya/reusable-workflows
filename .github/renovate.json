@@ -19,6 +19,15 @@
       "managerFilePatterns": ["/^\\.github/workflows/Toolkit-(?:CI|Security)\\.yml$/"],
       "matchStrings": ["go install (?<depName>[^@\\s]+)@(?<currentValue>v[0-9][^\\s]*)"],
       "datasourceTemplate": "go"
+    },
+    {
+      "description": "更新 zizmor-action 的 version 輸入；該版本號決定實際執行的 zizmor container",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/_zizmor\\.yml$/"],
+      "matchStrings": ["version: (?<currentValue>v[0-9][^\\s]*)"],
+      "depNameTemplate": "zizmorcore/zizmor",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
     }
   ]
 }

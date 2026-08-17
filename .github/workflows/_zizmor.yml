@@ -1,0 +1,47 @@
+# summary: 以 zizmor 稽核 workflow 與 composite action 的 Actions 安全問題（內部 CI，非 reusable）
+# category: 內部 CI
+name: GitHub Actions Security
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/actions/**
+      - .github/workflows/**
+      - zizmor.yml
+  pull_request:
+    paths:
+      - .github/actions/**
+      - .github/workflows/**
+      - zizmor.yml
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: zizmor-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: zizmor
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # advanced-security 需 GitHub Advanced Security 才能上傳 SARIF；改用 annotations
+      # 直接在 PR diff 標註 finding，兩者互斥必須明寫 advanced-security: false。
+      # zizmor 讀取 repo root 的 zizmor.yml（container workdir 即 workspace），不必另傳 config。
+      # version 由 .github/renovate.json 的 custom manager 提出更新。
+      - name: Audit GitHub Actions
+        uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
+        with:
+          advanced-security: false
+          annotations: true
+          min-severity: low
+          persona: regular
+          version: v1.29.0
