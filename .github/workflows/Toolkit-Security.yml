@@ -88,8 +88,8 @@ jobs:
                   snippet: (.locations[0].physicalLocation.region.snippet.text // "")
                 }
             ]
-            | unique
-            | sort_by(.rule_id, .path, .line, .snippet)
+            | sort_by(.rule_id, .path, .snippet, .line)
+            | unique_by([.rule_id, .path, .snippet])
             | . as $current
             | ($baseline[0][$tool] // []) as $known
             | {
@@ -97,7 +97,14 @@ jobs:
                 baseline_count: ($known | length),
                 new: [
                   $current[]
-                  | select(. as $finding | ($known | index($finding)) == null)
+                  | select(
+                      . as $finding
+                      | (any($known[]?;
+                          .rule_id == $finding.rule_id and
+                          .path == $finding.path and
+                          .snippet == $finding.snippet
+                        ) | not)
+                    )
                 ]
               }
           ' security-reports/gosec.sarif > security-reports/gosec-new.json
@@ -424,8 +431,8 @@ jobs:
                     snippet: (.locations[0].physicalLocation.region.snippet.text // "")
                   }
               ]
-              | unique
-              | sort_by(.rule_id, .path, .line, .snippet)
+              | sort_by(.rule_id, .path, .snippet, .line)
+              | unique_by([.rule_id, .path, .snippet])
               | . as $current
               | ($baseline[0][$tool] // []) as $known
               | {
@@ -433,7 +440,14 @@ jobs:
                   baseline_count: ($known | length),
                   new: [
                     $current[]
-                    | select(. as $finding | ($known | index($finding)) == null)
+                    | select(
+                        . as $finding
+                        | (any($known[]?;
+                            .rule_id == $finding.rule_id and
+                            .path == $finding.path and
+                            .snippet == $finding.snippet
+                          ) | not)
+                      )
                   ]
                 }
             ' "$report" > "$output"

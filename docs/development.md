@@ -38,7 +38,13 @@ uv run scripts/gen_workflow_docs.py
 uv run scripts/gen_workflow_docs.py --check
 ```
 
-`docs/` 或 `README.md` 與 workflow 定義不同步時 exit 1。CI workflow `_docs-check.yml` 會於 PR 自動執行。產生器會合併 workflow 與各 job 所需的最高 permissions，並帶入 caller 範例，避免文件看似可用、實際卻因呼叫端未授權而失敗。
+`docs/` 或 `README.md` 與 workflow 定義不同步時 exit 1。CI workflow `_docs-check.yml` 會於 PR 自動執行文件同步與 security baseline contract test。產生器會合併 workflow 與各 job 所需的最高 permissions，並帶入 caller 範例，避免文件看似可用、實際卻因呼叫端未授權而失敗。
+
+Security baseline finding 的 identity 固定為 `rule_id`、path 與 snippet；SARIF line 只用於 summary 與 annotation 診斷，不參與 baseline 比對。因此無關插行不會把既有 finding 誤報為新發現，但 rule、path 或 snippet 任一改變仍必須重新審查。本地可單獨執行：
+
+```bash
+bash scripts/security-baseline-contract-test.sh
+```
 
 ### Actions 安全稽核
 
@@ -61,7 +67,7 @@ uvx zizmor@1.29.0 --min-severity low --persona regular .
 
 - `go.mod` 的精確 Go patch version；`actions/setup-go` 直接讀取該檔，CI 與 release 不另存一份版本。
 - 可執行的 `scripts/check.sh`，至少支援 `build`、`fmt-check`、`vet`、`lint`、`staticcheck`、`vuln`、`unit`、`e2e` 與 `tidy` stages。
-- `.github/security-baseline.json` schema 1；只記錄已人工審查的既有 `gosec`、Semgrep 與 OpenGrep findings，不能把新 finding 自動加入 baseline。
+- `.github/security-baseline.json` schema 1；只記錄已人工審查的既有 `gosec`、Semgrep 與 OpenGrep findings，identity 為 `rule_id`、path 與 snippet，line 僅供診斷；不能把新 finding 自動加入 baseline。
 - 預設 `buildinfo` release profile 需要 `internal/buildinfo` 的 `Version`、`Commit`、`BuildTime`、JSON version output 與正式 `CHANGELOG.md` 段落；`modpack-toolkit` profile 則需要 `internal/toolkit.Version` 與純文字 `<binary> version`，release notes 由 GitHub 產生。
 
 共用 CI 固定三平台 matrix、檢查工具版本與五個 release targets。專案特有差異只能透過受限 profile 表達：`translation-toolkit` 啟用真實 CurseForge integration，`paratranz-toolkit` 啟用 built-binary E2E coverage，`modpack-toolkit` 使用不同的版本 metadata／notes profile；都不能傳入任意 shell command。caller 範例見 [`example/go-toolkit.md`](example/go-toolkit.md)。

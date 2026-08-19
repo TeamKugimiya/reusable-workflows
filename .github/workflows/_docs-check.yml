@@ -9,12 +9,14 @@ on:
       - ".github/workflows/**.yml"
       - "docs/**.md"
       - "scripts/gen_workflow_docs.py"
+      - "scripts/security-baseline-contract-test.sh"
       - "README.md"
   pull_request:
     paths:
       - ".github/workflows/**.yml"
       - "docs/**.md"
       - "scripts/gen_workflow_docs.py"
+      - "scripts/security-baseline-contract-test.sh"
       - "README.md"
 
 permissions:
@@ -31,3 +33,5 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
 
       - run: uv run scripts/gen_workflow_docs.py --check
+
+      - run: bash scripts/security-baseline-contract-test.sh
