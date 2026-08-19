@@ -11,7 +11,7 @@ ParaTranz 翻譯包使用兩條獨立 reusable workflow：
 - `TranslationPack-Paratranz-Push.yml`：以 `translation-tool` 更新模組原文，並以 `paratranz-tool` 將已提交的 source 推到 ParaTranz。
 - `TranslationPack-Paratranz-Pull.yml`：先偵測遠端更新，必要時才產生 artifact、拉回 `zh_tw.json`、更新進度、驗證與建構，最後建立翻譯 PR。
 
-兩條 workflow 都要求明確指定 `paratranz_toolkit_version`，且安裝時會驗證 release 的 `SHA512SUMS`。`PARATRANZ_TOKEN` 只存在於同步 job；建立 PR 的 job 不會取得該 secret。兩條 caller 必須傳入相同的 `concurrency_group`，避免同一 ParaTranz project 的 Push 與 Pull 交錯。
+兩條 workflow 預設省略 toolkit version，從 GitHub latest release 安裝 `translation-toolkit` 與 `paratranz-toolkit`，並驗證 release 的 `SHA512SUMS`；需要重現或暫停升級時才傳入明確 tag。`PARATRANZ_TOKEN` 只存在於同步 job；建立 PR 的 job 不會取得該 secret。兩條 caller 必須傳入相同的 `concurrency_group`，避免同一 ParaTranz project 的 Push 與 Pull 交錯。
 
 ### 來源更新：先 PR，合併後才 Push
 
@@ -45,7 +45,6 @@ jobs:
       sync_sources: true
       apply: false
       create_pull_request: true
-      paratranz_toolkit_version: v1.0.0
       concurrency_group: project-9900
     secrets:
       toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}
@@ -61,7 +60,6 @@ jobs:
       # 新 mod create／adopt 會更新 identity manifest，因此仍需把該差異送進 PR。
       create_pull_request: true
       state_path: config/paratranz-source-state.json
-      paratranz_toolkit_version: v1.0.0
       concurrency_group: project-9900
     secrets:
       toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}
@@ -93,7 +91,6 @@ jobs:
       state_path: config/paratranz-sync-state.json
       generate_artifact: true
       create_pull_request: true
-      paratranz_toolkit_version: v1.0.0
       concurrency_group: project-9900
     secrets:
       toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}

@@ -27,8 +27,8 @@
 | `apply` | `boolean` | — | `false` | 是否正式套用 source update／新檔 create／adopt；false 只產生 dry-run plan |
 | `create_pull_request` | `boolean` | — | `true` | source、manifest 或 source state 產生 repository 差異時，是否建立或更新來源同步 PR |
 | `base_branch` | `string` | — | `main` | checkout 與自動更新 PR 的目標分支 |
-| `translation_toolkit_version` | `string` | — | `v1.8.0` | 固定的 translation-toolkit release tag |
-| `paratranz_toolkit_version` | `string` | ✅ | — | 固定的 paratranz-toolkit release tag；該 release 必須包含 SHA512SUMS |
+| `translation_toolkit_version` | `string` | — | — | translation-toolkit release tag；留空抓 latest，仍驗證 SHA512SUMS |
+| `paratranz_toolkit_version` | `string` | — | — | paratranz-toolkit release tag；留空抓 latest，仍驗證 SHA512SUMS |
 | `concurrency_group` | `string` | — | `default` | 同一 ParaTranz project 的 Push／Pull 呼叫必須使用相同值 |
 | `runs_on` | `string` | — | `blacksmith-4vcpu-ubuntu-2404-arm` | 執行環境 |
 | `report_retention_days` | `number` | — | `14` | Sanitized JSON report 與 repository patch Artifact 保留天數 |
@@ -61,7 +61,7 @@ jobs:
       pull-requests: write
     uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Paratranz-Push.yml@v1
     with:
-      paratranz_toolkit_version: <值>
+      project_path: <值>
     secrets:
       toolkit_token: ${{ secrets.TOOLKIT_TOKEN }}
       paratranz_token: ${{ secrets.PARATRANZ_TOKEN }}

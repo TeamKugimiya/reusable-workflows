@@ -53,12 +53,13 @@ on:
       translation_toolkit_version:
         required: false
         type: string
-        default: "v1.8.0"
-        description: "固定的 translation-toolkit release tag"
+        default: ""
+        description: "translation-toolkit release tag；留空抓 latest，仍驗證 SHA512SUMS"
       paratranz_toolkit_version:
-        required: true
+        required: false
         type: string
-        description: "固定的 paratranz-toolkit release tag；該 release 必須包含 SHA512SUMS"
+        default: ""
+        description: "paratranz-toolkit release tag；留空抓 latest，仍驗證 SHA512SUMS"
       concurrency_group:
         required: false
         type: string
@@ -167,9 +168,16 @@ jobs:
           validate_relative_path manifest_path "$MANIFEST_PATH" false
           validate_relative_path state_path "$STATE_PATH" false
 
-          for value in "$BASE_BRANCH" "$CONCURRENCY_GROUP" "$PARATRANZ_TOOLKIT_VERSION" "$TRANSLATION_TOOLKIT_VERSION"; do
+          for value in "$BASE_BRANCH" "$CONCURRENCY_GROUP"; do
             if [ -z "$value" ] || [[ "$value" == *$'\n'* ]]; then
-              echo "::error::branch、concurrency group 與 toolkit versions 不可為空或含換行"
+              echo "::error::branch 與 concurrency group 不可為空或含換行"
+              exit 1
+            fi
+          done
+
+          for version in "$PARATRANZ_TOOLKIT_VERSION" "$TRANSLATION_TOOLKIT_VERSION"; do
+            if [[ "$version" == *$'\n'* ]]; then
+              echo "::error::toolkit version 不可含換行"
               exit 1
             fi
           done
