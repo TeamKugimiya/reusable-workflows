@@ -21,10 +21,11 @@
 | `project_path` | `string` | — | `.` | 翻譯專案根目錄；必須是 repository 內的相對路徑 |
 | `config_path` | `string` | — | `config/paratranz.json` | 相對於 project_path 的 ParaTranz config 路徑 |
 | `manifest_path` | `string` | — | `config/paratranz-files.json` | 相對於 project_path 的 ParaTranz identity manifest 路徑 |
+| `state_path` | `string` | — | `config/paratranz-source-state.json` | 相對於 project_path 的 source push state；完整 apply 後提交進 repository |
 | `content_id` | `string` | — | — | 只處理完全匹配的 content ID；留空處理全部 current content |
 | `sync_sources` | `boolean` | — | `false` | 是否先用 translation-tool 從模組平台更新 repository 原文 |
-| `apply` | `boolean` | — | `false` | 是否正式套用 ParaTranz source push；false 只產生 dry-run plan |
-| `create_pull_request` | `boolean` | — | `true` | sync_sources 產生 repository 差異時，是否建立或更新來源同步 PR |
+| `apply` | `boolean` | — | `false` | 是否正式套用 source update／新檔 create／adopt；false 只產生 dry-run plan |
+| `create_pull_request` | `boolean` | — | `true` | source、manifest 或 source state 產生 repository 差異時，是否建立或更新來源同步 PR |
 | `base_branch` | `string` | — | `main` | checkout 與自動更新 PR 的目標分支 |
 | `translation_toolkit_version` | `string` | — | `v1.8.0` | 固定的 translation-toolkit release tag |
 | `paratranz_toolkit_version` | `string` | ✅ | — | 固定的 paratranz-toolkit release tag；該 release 必須包含 SHA512SUMS |

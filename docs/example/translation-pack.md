@@ -9,7 +9,7 @@
 ParaTranz 翻譯包使用兩條獨立 reusable workflow：
 
 - `TranslationPack-Paratranz-Push.yml`：以 `translation-tool` 更新模組原文，並以 `paratranz-tool` 將已提交的 source 推到 ParaTranz。
-- `TranslationPack-Paratranz-Pull.yml`：產生新 artifact、拉回 `zh_tw.json`、更新進度、驗證與建構，最後建立翻譯 PR。
+- `TranslationPack-Paratranz-Pull.yml`：先偵測遠端更新，必要時才產生 artifact、拉回 `zh_tw.json`、更新進度、驗證與建構，最後建立翻譯 PR。
 
 兩條 workflow 都要求明確指定 `paratranz_toolkit_version`，且安裝時會驗證 release 的 `SHA512SUMS`。`PARATRANZ_TOKEN` 只存在於同步 job；建立 PR 的 job 不會取得該 secret。兩條 caller 必須傳入相同的 `concurrency_group`，避免同一 ParaTranz project 的 Push 與 Pull 交錯。
 
@@ -58,7 +58,9 @@ jobs:
     with:
       sync_sources: false
       apply: true
-      create_pull_request: false
+      # 新 mod create／adopt 會更新 identity manifest，因此仍需把該差異送進 PR。
+      create_pull_request: true
+      state_path: config/paratranz-source-state.json
       paratranz_toolkit_version: v1.0.0
       concurrency_group: project-9900
     secrets:
@@ -66,7 +68,7 @@ jobs:
       paratranz_token: ${{ secrets.PARATRANZ_TOKEN }}
 ```
 
-> `paratranz-tool` 目前只會 apply 已有 `file_id` 且遠端路徑一致的 source update。全新模組與 path reconciliation 會出現在 dry-run report，但在任何 mutation 前 fail closed；不可用 workflow shell command 繞過此安全閘門。
+> `paratranz-tool` 會為全新模組 create 遠端檔案並將新 `file_id` atomic 寫回 manifest；workflow 會將 manifest 與 source state 差異一併建立 PR。Create 後中斷時可用 exact-path／exact-source adopt 收斂。Path reconciliation 仍會在任何 mutation 前 fail closed。Manifest-only 只警告並保留，不會自動刪除遠端翻譯。
 
 ### 譯文更新：Artifact → `zh_tw.json` PR
 
@@ -75,7 +77,7 @@ name: ParaTranz Translation Sync
 
 on:
   schedule:
-    - cron: "20 18 * * 4"
+    - cron: "20 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -87,6 +89,8 @@ jobs:
     uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Paratranz-Pull.yml@v1
     with:
       pack_name: ParaTranslationPack
+      detect_updates: true
+      state_path: config/paratranz-sync-state.json
       generate_artifact: true
       create_pull_request: true
       paratranz_toolkit_version: v1.0.0
@@ -96,9 +100,9 @@ jobs:
       paratranz_token: ${{ secrets.PARATRANZ_TOKEN }}
 ```
 
-有差異時，Pull workflow 只允許提交 `Translation/**/zh_tw.json` 與 `Translation/**/metadata.json`，並在建立 PR 前完成：
+Pull workflow 先輸出 `none`、`pull_existing` 或 `generate_and_pull`；`none` 會在下載、build 與 PR 前結束。完整 pull 有差異時只允許提交 `Translation/**/zh_tw.json`、`Translation/**/metadata.json` 與精確的 `config/paratranz-sync-state.json`，並在建立 PR 前完成：
 
-1. artifact generation read-after-write；
+1. 必要時的 artifact generation read-after-write；
 2. translation pull dry-run 與 apply；
 3. 相同 artifact 的 no-op 重跑；
 4. `translation-tool progress`；

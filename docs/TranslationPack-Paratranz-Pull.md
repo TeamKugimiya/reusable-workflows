@@ -2,7 +2,7 @@
 
 # 翻譯包｜ParaTranz 譯文同步
 
-產生 ParaTranz artifact、拉回 zh_tw、完整驗證後由獨立 Git job 建立翻譯 PR
+偵測 ParaTranz 更新，必要時拉回 zh_tw，完整驗證後由獨立 Git job 建立翻譯 PR
 
 - **檔案**：[`.github/workflows/TranslationPack-Paratranz-Pull.yml`](../.github/workflows/TranslationPack-Paratranz-Pull.yml)
 - **分類**：翻譯包
@@ -23,7 +23,9 @@
 | `config_path` | `string` | — | `config/paratranz.json` | 相對於 project_path 的 ParaTranz config 路徑 |
 | `manifest_path` | `string` | — | `config/paratranz-files.json` | 相對於 project_path 的 ParaTranz identity manifest 路徑 |
 | `content_id` | `string` | — | — | 只處理完全匹配的 content ID；留空處理全部 current content |
-| `generate_artifact` | `boolean` | — | `true` | Pull 前是否要求 ParaTranz 產生並確認一份新 artifact |
+| `detect_updates` | `boolean` | — | `true` | 先比較 remote modified_at、最新 artifact 與 committed state；無更新時跳過 pull、build 與 PR |
+| `state_path` | `string` | — | `config/paratranz-sync-state.json` | 相對於 project_path 的已套用 artifact state；完整 pull 後提交進 repository |
+| `generate_artifact` | `boolean` | — | `true` | 偵測到 remote 較新時是否允許產生 artifact；關閉 update detection 時維持每次產生的舊行為 |
 | `artifact_wait_timeout` | `string` | — | `10m` | 等待新 artifact 的期限，須符合 paratranz-tool 的 5s 至 30m 限制 |
 | `version_group` | `string` | — | — | Build smoke test 限定的版本群組；留空建置全部 |
 | `create_pull_request` | `boolean` | — | `true` | 有翻譯差異時是否建立或更新 PR |

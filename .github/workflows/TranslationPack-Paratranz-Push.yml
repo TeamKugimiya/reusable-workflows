@@ -20,6 +20,11 @@ on:
         type: string
         default: "config/paratranz-files.json"
         description: "相對於 project_path 的 ParaTranz identity manifest 路徑"
+      state_path:
+        required: false
+        type: string
+        default: "config/paratranz-source-state.json"
+        description: "相對於 project_path 的 source push state；完整 apply 後提交進 repository"
       content_id:
         required: false
         type: string
@@ -34,12 +39,12 @@ on:
         required: false
         type: boolean
         default: false
-        description: "是否正式套用 ParaTranz source push；false 只產生 dry-run plan"
+        description: "是否正式套用 source update／新檔 create／adopt；false 只產生 dry-run plan"
       create_pull_request:
         required: false
         type: boolean
         default: true
-        description: "sync_sources 產生 repository 差異時，是否建立或更新來源同步 PR"
+        description: "source、manifest 或 source state 產生 repository 差異時，是否建立或更新來源同步 PR"
       base_branch:
         required: false
         type: string
@@ -129,6 +134,7 @@ jobs:
           MANIFEST_PATH: ${{ inputs.manifest_path }}
           PARATRANZ_TOOLKIT_VERSION: ${{ inputs.paratranz_toolkit_version }}
           PROJECT_PATH: ${{ inputs.project_path }}
+          STATE_PATH: ${{ inputs.state_path }}
           TRANSLATION_TOOLKIT_VERSION: ${{ inputs.translation_toolkit_version }}
         shell: bash
         run: |
@@ -159,6 +165,7 @@ jobs:
           validate_relative_path project_path "$PROJECT_PATH" true
           validate_relative_path config_path "$CONFIG_PATH" false
           validate_relative_path manifest_path "$MANIFEST_PATH" false
+          validate_relative_path state_path "$STATE_PATH" false
 
           for value in "$BASE_BRANCH" "$CONCURRENCY_GROUP" "$PARATRANZ_TOOLKIT_VERSION" "$TRANSLATION_TOOLKIT_VERSION"; do
             if [ -z "$value" ] || [[ "$value" == *$'\n'* ]]; then
@@ -265,6 +272,7 @@ jobs:
           MANIFEST_PATH: ${{ inputs.manifest_path }}
           PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
           PROJECT_PATH: ${{ inputs.project_path }}
+          STATE_PATH: ${{ inputs.state_path }}
         shell: bash
         run: |
           set -euo pipefail
@@ -274,13 +282,27 @@ jobs:
             --config "$CONFIG_PATH"
             --manifest "$MANIFEST_PATH"
             --format json
-            sync push-source --dry-run
+            sync push-source --dry-run --state "$STATE_PATH"
           )
           if [ -n "$CONTENT_ID" ]; then
             args+=(--content-id "$CONTENT_ID")
           fi
           paratranz-tool "${args[@]}" > "$report"
-          jq -e '.operation == "sync_push_source" and .mode == "dry_run" and .ok == true' "$report" >/dev/null
+          jq -e --arg state_path "$STATE_PATH" '
+            .schema_version == 7
+            and .operation == "sync_push_source"
+            and .mode == "dry_run"
+            and .ok == true
+            and .state_path == $state_path
+            and .state_precondition == "matched"
+            and (.state_status == "planned" or .state_status == "unchanged")
+            and .counts.unknown_files == 0
+            and .counts.pending_files == 0
+            and .term_delete_counts.confirmed == 0
+            and .term_delete_counts.unknown == 0
+            and .term_delete_counts.pending == 0
+            and all(.files[]?.delete_terms[]?; .status == "planned")
+          ' "$report" >/dev/null
           echo "changed=$(jq -r '.changed' "$report")" >> "$GITHUB_OUTPUT"
           echo "plan_sha256=$(jq -r '.plan_sha256' "$report")" >> "$GITHUB_OUTPUT"
 
@@ -292,6 +314,7 @@ jobs:
           MANIFEST_PATH: ${{ inputs.manifest_path }}
           PARATRANZ_TOKEN: ${{ secrets.paratranz_token }}
           PROJECT_PATH: ${{ inputs.project_path }}
+          STATE_PATH: ${{ inputs.state_path }}
         shell: bash
         run: |
           set -euo pipefail
@@ -301,13 +324,27 @@ jobs:
             --config "$CONFIG_PATH"
             --manifest "$MANIFEST_PATH"
             --format json
-            sync push-source --apply
+            sync push-source --apply --state "$STATE_PATH"
           )
           if [ -n "$CONTENT_ID" ]; then
             args+=(--content-id "$CONTENT_ID")
           fi
           paratranz-tool "${args[@]}" > "$report"
-          jq -e '.operation == "sync_push_source" and .mode == "apply" and .ok == true and .counts.unknown_files == 0 and .counts.pending_files == 0' "$report" >/dev/null
+          jq -e --arg state_path "$STATE_PATH" '
+            .schema_version == 7
+            and .operation == "sync_push_source"
+            and .mode == "apply"
+            and .ok == true
+            and .state_path == $state_path
+            and .state_precondition == "matched"
+            and (.state_status == "published" or .state_status == "unchanged")
+            and .counts.unknown_files == 0
+            and .counts.pending_files == 0
+            and .term_delete_counts.planned == 0
+            and .term_delete_counts.unknown == 0
+            and .term_delete_counts.pending == 0
+            and all(.files[]?.delete_terms[]?; .status == "confirmed")
+          ' "$report" >/dev/null
 
       - name: 重新驗證 ParaTranz identity
         if: ${{ inputs.apply && steps.push-plan.outputs.changed == 'true' }}
@@ -331,7 +368,9 @@ jobs:
       - name: 封裝 repository source 差異
         id: repository-state
         env:
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
           PROJECT_PATH: ${{ inputs.project_path }}
+          STATE_PATH: ${{ inputs.state_path }}
         shell: bash
         run: |
           set -euo pipefail
@@ -353,8 +392,12 @@ jobs:
 
           if [ "$PROJECT_PATH" = "." ]; then
             allowed_prefix="Translation/"
+            allowed_manifest="$MANIFEST_PATH"
+            allowed_state="$STATE_PATH"
           else
             allowed_prefix="${PROJECT_PATH%/}/Translation/"
+            allowed_manifest="${PROJECT_PATH%/}/${MANIFEST_PATH}"
+            allowed_state="${PROJECT_PATH%/}/${STATE_PATH}"
           fi
 
           while IFS= read -r -d '' entry; do
@@ -367,13 +410,28 @@ jobs:
                 exit 1
                 ;;
             esac
+            if [ "$path" = "$allowed_manifest" ]; then
+              continue
+            fi
+            if [ "$path" = "$allowed_state" ]; then
+              case "$status" in
+                D* | *D)
+                  echo "::error::source sync 不允許刪除 source state：${path}"
+                  exit 1
+                  ;;
+              esac
+              continue
+            fi
             if [[ "$path" != "$allowed_prefix"* ]]; then
               echo "::error::source sync 產生非 Translation 路徑變更：${path}"
               exit 1
             fi
           done < "${RUNNER_TEMP}/repository-status.txt"
 
-          git -C "$PROJECT_PATH" add -- Translation
+          git -C "$PROJECT_PATH" add -- Translation "$MANIFEST_PATH"
+          if [ -e "$PROJECT_PATH/$STATE_PATH" ]; then
+            git -C "$PROJECT_PATH" add -- "$STATE_PATH"
+          fi
           git diff --cached --binary --full-index > "${state_dir}/repository.patch"
           if [ ! -s "${state_dir}/repository.patch" ]; then
             echo "::error::偵測到 repository 狀態，但沒有可封裝的 Translation patch"
@@ -427,17 +485,24 @@ jobs:
 
           jq -r '
             "## ParaTranz source sync\n\n"
-            + "| mode | project | files | changed | create | path reconcile | source update | confirmed | unknown | pending |\n"
-            + "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n"
+            + "| mode | project | files | changed | create | adopt | retained | path reconcile | source update | confirmed | unknown | pending |\n"
+            + "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n"
             + "| `" + .mode + "` | " + (.project_id | tostring)
             + " | " + (.counts.files | tostring)
             + " | " + (.counts.changed_files | tostring)
             + " | " + (.counts.create_files | tostring)
+            + " | " + (.counts.adopt_files | tostring)
+            + " | " + (.counts.retained_mappings | tostring)
             + " | " + (.counts.reconcile_path_files | tostring)
             + " | " + (.counts.update_source_files | tostring)
             + " | " + (.counts.confirmed_files | tostring)
             + " | " + (.counts.unknown_files | tostring)
             + " | " + (.counts.pending_files | tostring) + " |\n\n"
+            + "Source state: `" + .state_status + "` (`" + .state_path + "`)  \n"
+            + "Term deletes: planned " + (.term_delete_counts.planned | tostring)
+            + ", confirmed " + (.term_delete_counts.confirmed | tostring)
+            + ", unknown " + (.term_delete_counts.unknown | tostring)
+            + ", pending " + (.term_delete_counts.pending | tostring) + "  \n"
             + "Plan SHA-256: `" + .plan_sha256 + "`\n"
           ' "$report" >> "$GITHUB_STEP_SUMMARY"
 
@@ -510,6 +575,11 @@ jobs:
             + "| ParaTranz project | `" + (.project_id | tostring) + "` |\n"
             + "| Source mode | `" + .mode + "` |\n"
             + "| Changed files | " + (.counts.changed_files | tostring) + " |\n"
+            + "| Created files | " + (.counts.create_files | tostring) + " |\n"
+            + "| Adopted files | " + (.counts.adopt_files | tostring) + " |\n"
+            + "| Retained mappings | " + (.counts.retained_mappings | tostring) + " |\n"
+            + "| Source state | `" + .state_status + "` |\n"
+            + "| Confirmed term deletes | " + (.term_delete_counts.confirmed | tostring) + " |\n"
             + "| Added keys | " + (.counts.added_keys | tostring) + " |\n"
             + "| Modified keys | " + (.counts.modified_keys | tostring) + " |\n"
             + "| Removed keys | " + (.counts.removed_keys | tostring) + " |\n"
@@ -530,5 +600,7 @@ jobs:
           author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
           title: "chore(sources): sync latest mod translations"
           body-path: ${{ steps.pr-body.outputs.path }}
+          # create-pr job 只套用 sync job 以 allowlist 驗證並簽署的 patch；使用 project
+          # root 可同時收納 Translation、manifest 與可選的 source state。
           add-paths: |
-            ${{ inputs.project_path }}/Translation
+            ${{ inputs.project_path }}
