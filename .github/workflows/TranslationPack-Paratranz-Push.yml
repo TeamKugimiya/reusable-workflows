@@ -297,12 +297,12 @@ jobs:
           fi
           paratranz-tool "${args[@]}" > "$report"
           jq -e --arg state_path "$STATE_PATH" '
-            .schema_version == 7
+            .schema_version == 8
             and .operation == "sync_push_source"
             and .mode == "dry_run"
             and .ok == true
             and .state_path == $state_path
-            and .state_precondition == "matched"
+            and (.state_precondition == "matched" or .state_precondition == "missing")
             and (.state_status == "planned" or .state_status == "unchanged")
             and .counts.unknown_files == 0
             and .counts.pending_files == 0
@@ -339,12 +339,12 @@ jobs:
           fi
           paratranz-tool "${args[@]}" > "$report"
           jq -e --arg state_path "$STATE_PATH" '
-            .schema_version == 7
+            .schema_version == 8
             and .operation == "sync_push_source"
             and .mode == "apply"
             and .ok == true
             and .state_path == $state_path
-            and .state_precondition == "matched"
+            and (.state_precondition == "matched" or .state_precondition == "missing")
             and (.state_status == "published" or .state_status == "unchanged")
             and .counts.unknown_files == 0
             and .counts.pending_files == 0
