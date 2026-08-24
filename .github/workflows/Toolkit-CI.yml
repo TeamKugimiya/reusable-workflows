@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [blacksmith-2vcpu-ubuntu-2404-arm, macos-latest, windows-latest]
+        os: [blacksmith-2vcpu-ubuntu-2404-arm, blacksmith-6vcpu-macos-latest, blacksmith-2vcpu-windows-2025]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
