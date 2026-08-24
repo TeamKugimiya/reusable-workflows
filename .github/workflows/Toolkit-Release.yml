@@ -31,7 +31,7 @@ jobs:
     name: Validate release
     permissions:
       contents: read
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -108,7 +108,7 @@ jobs:
     # GitHub API 建立 immutable version tag 並上傳 release assets。
     permissions:
       contents: write # zizmor: ignore[undocumented-permissions]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -200,7 +200,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          binary="dist/${BINARY_NAME}-linux-amd64"
+          binary="dist/${BINARY_NAME}-linux-arm64"
           chmod +x "$binary"
           case "$RELEASE_PROFILE" in
             buildinfo)
@@ -210,7 +210,7 @@ jobs:
                 --arg version "$RELEASE_VERSION" \
                 --arg commit "$BUILD_COMMIT" \
                 --arg build_time "$BUILD_TIME" \
-                '.name == $name and .version == $version and .commit == $commit and .build_time == $build_time and .platform == "linux/amd64"' \
+                '.name == $name and .version == $version and .commit == $commit and .build_time == $build_time and .platform == "linux/arm64"' \
                 release-version.json >/dev/null
               ;;
             modpack-toolkit)

@@ -15,7 +15,7 @@ concurrency:
 jobs:
   go-security:
     name: Go security
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -43,13 +43,13 @@ jobs:
         run: |
           set -euo pipefail
           tool_dir="${RUNNER_TEMP}/security-tools"
-          archive="${RUNNER_TEMP}/gosec_2.28.0_linux_amd64.tar.gz"
+          archive="${RUNNER_TEMP}/gosec_2.28.0_linux_arm64.tar.gz"
           mkdir -p "$tool_dir"
           curl --fail --silent --show-error --location \
             --output "$archive" \
-            https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_linux_amd64.tar.gz
+            https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_linux_arm64.tar.gz
           printf '%s  %s\n' \
-            d7882e505b1ff345d458bf0e893eec8019bc849f861ad73a212869540dd505ff \
+            63259681b6e4b9e7a24d4e187b485e75d3844d28d512b0c97dc831e51d374720 \
             "$archive" | sha256sum --check --strict -
           tar -xzf "$archive" -C "$tool_dir" gosec
           printf '%s\n' "$tool_dir" >> "$GITHUB_PATH"
@@ -136,7 +136,7 @@ jobs:
 
   secrets:
     name: Secret scanning
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -152,23 +152,23 @@ jobs:
         run: |
           set -euo pipefail
           tool_dir="${RUNNER_TEMP}/security-tools"
-          gitleaks_archive="${RUNNER_TEMP}/gitleaks_8.29.1_linux_x64.tar.gz"
-          betterleaks_archive="${RUNNER_TEMP}/betterleaks_1.7.4_linux_x64.tar.gz"
+          gitleaks_archive="${RUNNER_TEMP}/gitleaks_8.29.1_linux_arm64.tar.gz"
+          betterleaks_archive="${RUNNER_TEMP}/betterleaks_1.7.4_linux_arm64.tar.gz"
           mkdir -p "$tool_dir"
 
           curl --fail --silent --show-error --location \
             --output "$gitleaks_archive" \
-            https://github.com/gitleaks/gitleaks/releases/download/v8.29.1/gitleaks_8.29.1_linux_x64.tar.gz
+            https://github.com/gitleaks/gitleaks/releases/download/v8.29.1/gitleaks_8.29.1_linux_arm64.tar.gz
           printf '%s  %s\n' \
-            e4eb209d04e20339d77122a3bdf9cd41351255cfb27ebcb75e85325e04f88924 \
+            691f826ce7c1c564c9c02d0f9025e8e70803e3816707a4be6224408a06a81eaa \
             "$gitleaks_archive" | sha256sum --check --strict -
           tar -xzf "$gitleaks_archive" -C "$tool_dir" gitleaks
 
           curl --fail --silent --show-error --location \
             --output "$betterleaks_archive" \
-            https://github.com/betterleaks/betterleaks/releases/download/v1.7.4/betterleaks_1.7.4_linux_x64.tar.gz
+            https://github.com/betterleaks/betterleaks/releases/download/v1.7.4/betterleaks_1.7.4_linux_arm64.tar.gz
           printf '%s  %s\n' \
-            9ed7739a39a26a2217f38726bff8a8f4fe079d3b21272caa7959823ccc444d96 \
+            038d8379935fb6699e12c2c95d0d4901a1ef420cbc553b7c4d4710570d03024e \
             "$betterleaks_archive" | sha256sum --check --strict -
           tar -xzf "$betterleaks_archive" -C "$tool_dir" betterleaks
 
@@ -267,7 +267,7 @@ jobs:
 
   trivy:
     name: Dependencies, config, and filesystem
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -342,7 +342,7 @@ jobs:
 
   sast:
     name: Semgrep CE and OpenGrep
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
