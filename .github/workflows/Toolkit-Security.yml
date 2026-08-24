@@ -279,13 +279,13 @@ jobs:
         run: |
           set -euo pipefail
           tool_dir="${RUNNER_TEMP}/security-tools"
-          archive="${RUNNER_TEMP}/trivy_0.73.0_Linux-64bit.tar.gz"
+          archive="${RUNNER_TEMP}/trivy_0.73.0_Linux-ARM64.tar.gz"
           mkdir -p "$tool_dir"
           curl --fail --silent --show-error --location \
             --output "$archive" \
-            https://github.com/aquasecurity/trivy/releases/download/v0.73.0/trivy_0.73.0_Linux-64bit.tar.gz
+            https://github.com/aquasecurity/trivy/releases/download/v0.73.0/trivy_0.73.0_Linux-ARM64.tar.gz
           printf '%s  %s\n' \
-            2edd39da482bb4e9831962487b68f68e3928ec3137794757f54d00383d79547b \
+            13833d97e8a1a5367471c372a173180157f593bece570e20d5d925fef552f5dd \
             "$archive" | sha256sum --check --strict -
           tar -xzf "$archive" -C "$tool_dir" trivy
           printf '%s\n' "$tool_dir" >> "$GITHUB_PATH"
@@ -369,9 +369,9 @@ jobs:
           mkdir -p "$tool_dir"
           curl --fail --silent --show-error --location \
             --output "$binary" \
-            https://github.com/opengrep/opengrep/releases/download/v1.27.0/opengrep_manylinux_x86
+            https://github.com/opengrep/opengrep/releases/download/v1.27.0/opengrep_manylinux_aarch64
           printf '%s  %s\n' \
-            9d47d7de3f22ec5a93b25af9126648191e3d3b5d759dd4f699006138724719b3 \
+            4efcd2f195da8719f16e4eac79fb918442e04d70f3bcc001fd6105c0afd53aae \
             "$binary" | sha256sum --check --strict -
           chmod 0755 "$binary"
           printf '%s\n' "$tool_dir" >> "$GITHUB_PATH"
