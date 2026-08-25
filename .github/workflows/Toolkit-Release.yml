@@ -31,7 +31,7 @@ jobs:
     name: Validate release
     permissions:
       contents: read
-    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    runs-on: blacksmith-8vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -108,7 +108,7 @@ jobs:
     # GitHub API 建立 immutable version tag 並上傳 release assets。
     permissions:
       contents: write # zizmor: ignore[undocumented-permissions]
-    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    runs-on: blacksmith-8vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -200,7 +200,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          binary="dist/${BINARY_NAME}-linux-arm64"
+          case "$(uname -m)" in
+            x86_64)  host_arch=amd64 ;;
+            aarch64) host_arch=arm64 ;;
+            *) echo "::error::煙霧測試無法在 $(uname -m) 上執行任何已建構的 binary"; exit 1 ;;
+          esac
+          binary="dist/${BINARY_NAME}-linux-${host_arch}"
           chmod +x "$binary"
           case "$RELEASE_PROFILE" in
             buildinfo)
@@ -210,7 +215,8 @@ jobs:
                 --arg version "$RELEASE_VERSION" \
                 --arg commit "$BUILD_COMMIT" \
                 --arg build_time "$BUILD_TIME" \
-                '.name == $name and .version == $version and .commit == $commit and .build_time == $build_time and .platform == "linux/arm64"' \
+                --arg platform "linux/${host_arch}" \
+                '.name == $name and .version == $version and .commit == $commit and .build_time == $build_time and .platform == $platform' \
                 release-version.json >/dev/null
               ;;
             modpack-toolkit)

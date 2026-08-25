@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [blacksmith-2vcpu-ubuntu-2404-arm, blacksmith-6vcpu-macos-latest, blacksmith-2vcpu-windows-2025]
+        os: [blacksmith-8vcpu-ubuntu-2404-arm, blacksmith-6vcpu-macos-latest, blacksmith-4vcpu-windows-2025]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -111,7 +111,7 @@ jobs:
 
   lint:
     name: Static analysis
-    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    runs-on: blacksmith-8vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -154,7 +154,7 @@ jobs:
       inputs.integration_profile == 'translation-toolkit' &&
       (github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -195,7 +195,7 @@ jobs:
   cross-compile:
     name: Cross-compile release targets
     needs: [build, lint]
-    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    runs-on: blacksmith-8vcpu-ubuntu-2404-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
