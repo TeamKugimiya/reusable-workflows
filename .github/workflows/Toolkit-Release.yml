@@ -171,6 +171,7 @@ jobs:
           GOOS=darwin  GOARCH=amd64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-darwin-amd64" .
           GOOS=darwin  GOARCH=arm64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-darwin-arm64" .
           GOOS=windows GOARCH=amd64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-windows-amd64.exe" .
+          GOOS=windows GOARCH=arm64 go build "${build_flags[@]}" "-ldflags=${ldflags}" -o "dist/${BINARY_NAME}-windows-arm64.exe" .
           {
             echo "commit=${commit}"
             echo "build_time=${build_time}"
@@ -184,8 +185,8 @@ jobs:
         run: |
           set -euo pipefail
           sha512sum "${BINARY_NAME}-"* > SHA512SUMS
-          if [ "$(wc -l < SHA512SUMS | tr -d ' ')" != "5" ]; then
-            echo "::error::SHA512SUMS 必須恰好包含五個 release binary"
+          if [ "$(wc -l < SHA512SUMS | tr -d ' ')" != "6" ]; then
+            echo "::error::SHA512SUMS 必須恰好包含六個 release binary"
             exit 1
           fi
           sha512sum -c SHA512SUMS
