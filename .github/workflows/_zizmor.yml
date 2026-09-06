@@ -36,7 +36,7 @@ jobs:
       # advanced-security 需 GitHub Advanced Security 才能上傳 SARIF；改用 annotations
       # 直接在 PR diff 標註 finding，兩者互斥必須明寫 advanced-security: false。
       # zizmor 讀取 repo root 的 zizmor.yml（container workdir 即 workspace），不必另傳 config。
-      # version 由 .github/renovate.json 的 custom manager 提出更新。
+      # version 由 Renovate 的 github-actions manager 偵測 zizmor container 更新。
       - name: Audit GitHub Actions
         uses: zizmorcore/zizmor-action@70fb788f84895a7701f5643d103d587e460b5c99 # v0.6.3
         with:
@@ -44,4 +44,4 @@ jobs:
           annotations: true
           min-severity: low
           persona: regular
-          version: v1.29.0
+          version: 1.30.0
