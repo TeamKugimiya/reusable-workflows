@@ -2,7 +2,7 @@
 
 # Go Toolkit｜CI
 
-以共同 gate 執行 Go toolkit 的三平台測試、靜態檢查、整合測試與跨平台編譯
+以共同 gate 執行 Go toolkit 的三平台測試、靜態檢查、整合測試與跨平台編譯，並上傳建構結果為 Artifact
 
 - **檔案**：[`.github/workflows/Toolkit-CI.yml`](../.github/workflows/Toolkit-CI.yml)
 - **分類**：工具鏈
@@ -18,6 +18,7 @@
 | 名稱 | 型別 | 必填 | 預設 | 說明 |
 | --- | --- | --- | --- | --- |
 | `binary_name` | `string` | ✅ | — | 產出的 CLI binary 名稱，例如 ``translation-tool`` 或 ``paratranz-tool`` |
+| `artifact_retention_days` | `number` | — | `14` | 建構結果 Artifact 保留天數，預設為 ``14`` |
 | `integration_profile` | `string` | — | `none` | 額外真實網路測試；可用 ``none`` 或 ``translation-toolkit`` |
 | `e2e_profile` | `string` | — | `standard` | E2E 執行模式；可用 ``standard`` 或含 built-binary coverage 的 ``paratranz-toolkit`` |
 

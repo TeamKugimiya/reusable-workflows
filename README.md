@@ -14,7 +14,7 @@
 
 | 工作流程 | 用途 |
 | --- | --- |
-| [Go Toolkit｜CI](docs/Toolkit-CI.md) | 以共同 gate 執行 Go toolkit 的三平台測試、靜態檢查、整合測試與跨平台編譯 |
+| [Go Toolkit｜CI](docs/Toolkit-CI.md) | 以共同 gate 執行 Go toolkit 的三平台測試、靜態檢查、整合測試與跨平台編譯，並上傳建構結果為 Artifact |
 | [Go Toolkit｜發佈](docs/Toolkit-Release.md) | 驗證 release gate，依受限 toolkit profile 建構五平台 binary、SHA512SUMS、版本 smoke test 並建立 GitHub Release |
 | [Go Toolkit｜安全掃描](docs/Toolkit-Security.md) | 以免費工具執行 Go 弱點、SAST、依賴、設定與 secret 掃描，並封鎖新增 finding |
 

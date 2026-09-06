@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | Go 與 CLI baseline | Go patch 一律由 caller `go.mod` 決定 | modpack 仍為 standard-library CLI；另外兩庫共用 Cobra／color baseline |
 | Repository gate | 三庫都提供相同的 `scripts/check.sh` stage names，pre-commit 另由 `scripts/pre-submit.sh` 串接完整安全 gate | 每個 stage 的測試 package／timeout 由 caller repository 擁有 |
-| CI | 三平台 build、unit／E2E、module hygiene、固定 lint tools、五平台 cross-compile 完全共用 | `translation-toolkit` 保留 CurseForge live integration；`paratranz-toolkit` 保留 built-binary E2E coverage |
+| CI | 三平台 build、unit／E2E、module hygiene、固定 lint tools、六個跨平台 binary 的編譯與 Artifact 上傳完全共用 | `translation-toolkit` 保留 CurseForge live integration；`paratranz-toolkit` 保留 built-binary E2E coverage |
 | Security | `govulncheck`、`gosec`、Trivy、Semgrep CE、OpenGrep、Betterleaks 與 Gitleaks 的版本、規則、checksum、canary、SARIF 與 enforcement 完全共用 | 各 repository 保存自己的 `.github/security-baseline.json`，只承認已審查的既有 SAST finding |
 | Build metadata | translation／paratranz 使用 `internal/buildinfo` 與 JSON metadata | modpack 使用 `internal/toolkit.Version` 與純文字 version profile |
 | Release assets | 共同產生 Linux amd64／arm64、Darwin amd64／arm64、Windows amd64 與 `SHA512SUMS` | 只有 binary 名稱不同 |
@@ -52,6 +52,8 @@ jobs:
 ```
 
 `modpack-toolkit` 使用預設 profiles，只傳 `binary_name: modpack-tool`。
+
+跨平台編譯成功後，會將 Linux、macOS（Darwin）、Windows 各自的 amd64／arm64 binary 上傳為 `${binary_name}-build-output` Artifact，可從該次 Actions run 下載。預設保留 14 天，caller 可透過 `artifact_retention_days` 調整。Linux／macOS 的 binary 下載解壓縮後，執行前需以 `chmod +x <binary>` 恢復執行權限。
 
 ## Security
 
