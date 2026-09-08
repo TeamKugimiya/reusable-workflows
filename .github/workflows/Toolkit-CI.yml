@@ -124,18 +124,37 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
+        id: go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
-      - name: Install pinned check tools
+      - name: Prepare pinned check tools
+        id: check-tools
         shell: bash
         run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/install-check-tools.sh" <<'INSTALL'
           set -euo pipefail
           go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
           go install mvdan.cc/gofumpt@v0.12.0
           go install honnef.co/go/tools/cmd/staticcheck@v0.8.1
           go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+          INSTALL
+          versions=$(sed -n 's/^go install .*@//p' "$RUNNER_TEMP/install-check-tools.sh" | paste -sd '-' -)
+          echo "versions=$versions" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pinned check tools
+        id: check-tools-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/bin
+          key: check-tools-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ steps.check-tools.outputs.versions }}
+
+      - name: Install pinned check tools
+        if: steps.check-tools-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: bash "$RUNNER_TEMP/install-check-tools.sh"
 
       - name: Check gofumpt formatting
         run: ./scripts/check.sh fmt-check

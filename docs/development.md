@@ -74,6 +74,9 @@ uvx zizmor@1.29.0 --min-severity low --persona regular .
 
 Go check tools 以 `go install <module>@<version>` 固定在 workflow；`.github/renovate.json` 的 regex manager 負責提出版本更新。官方 Actions 以完整 commit SHA 固定並旁註 release tag。
 
+靜態檢查的 `~/go/bin` 快取依 runner OS／架構、Go 版本與四個工具版號隔離，只在完整命中時略過安裝。
+快取鍵的工具版號直接從同一份安裝腳本取得；Renovate 更新 `go install` 時會同時使舊快取失效。
+
 安全 workflow 使用 `govulncheck`、`gosec`、Trivy、Semgrep CE、OpenGrep、Betterleaks 與 Gitleaks。所有工具與 Semgrep rules 都固定版本或 commit；release binary 下載後先驗證 SHA-256。Semgrep 只透過 `uvx --managed-python --isolated` 執行，OpenGrep 使用官方 standalone binary。Gitleaks 固定在 `v8.29.1`，避開 `v8.30.1` 預設規則不命中的 released-binary regression；動態 canary 防止未來再靜默失效。Trivy、Betterleaks 與 Gitleaks finding 直接阻擋；SAST 只允許 baseline 中已審查的既有項目。
 
 ## 慣例
