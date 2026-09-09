@@ -44,4 +44,4 @@ jobs:
           annotations: true
           min-severity: low
           persona: regular
-          version: 1.30.0
+          version: 1.30.1
