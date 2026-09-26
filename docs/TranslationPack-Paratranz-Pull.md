@@ -33,7 +33,7 @@
 | `translation_toolkit_version` | `string` | — | — | translation-toolkit release tag；留空抓 latest，仍驗證 SHA512SUMS |
 | `paratranz_toolkit_version` | `string` | — | — | paratranz-toolkit release tag；留空抓 latest，仍驗證 SHA512SUMS |
 | `concurrency_group` | `string` | — | `default` | 同一 ParaTranz project 的 Push／Pull 呼叫必須使用相同值 |
-| `runs_on` | `string` | — | `blacksmith-4vcpu-ubuntu-2404-arm` | 執行環境 |
+| `runs_on` | `string` | — | `ubuntu-26.04-arm` | 執行環境 |
 | `report_retention_days` | `number` | — | `14` | Sanitized JSON report 與 repository patch Artifact 保留天數 |
 
 ## Outputs

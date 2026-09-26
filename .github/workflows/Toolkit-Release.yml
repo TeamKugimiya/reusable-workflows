@@ -31,7 +31,7 @@ jobs:
     name: Validate release
     permissions:
       contents: read
-    runs-on: blacksmith-8vcpu-ubuntu-2404-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -108,7 +108,7 @@ jobs:
     # GitHub API 建立 immutable version tag 並上傳 release assets。
     permissions:
       contents: write # zizmor: ignore[undocumented-permissions]
-    runs-on: blacksmith-8vcpu-ubuntu-2404-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
