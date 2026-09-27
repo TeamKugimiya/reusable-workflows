@@ -7,7 +7,9 @@
   "packageRules": [
     {
       "description": "本 repo 自己的 action 以 @v1 引用，不釘 digest 也不自動更新：digest pin 對同 repo 的 action 沒有保護作用，只會讓 action 改動需要發兩次版才生效",
-      "matchDepNames": ["TeamKugimiya/reusable-workflows{/,}**"],
+      "matchDepNames": [
+        "TeamKugimiya/reusable-workflows{/,}**"
+      ],
       "pinDigests": false,
       "enabled": false
     }
@@ -16,9 +18,31 @@
     {
       "description": "更新 Go toolkit CI 以 go install 精確固定的 lint/test 工具",
       "customType": "regex",
-      "managerFilePatterns": ["/^\\.github/workflows/Toolkit-(?:CI|Security)\\.yml$/"],
-      "matchStrings": ["go install (?<depName>[^@\\s]+)@(?<currentValue>v[0-9][^\\s]*)"],
+      "managerFilePatterns": [
+        "/^\\.github/workflows/Toolkit-(?:CI|Security)\\.yml$/"
+      ],
+      "matchStrings": [
+        "go install (?<depName>[^@\\s]+)@(?<currentValue>v[0-9][^\\s]*)"
+      ],
       "datasourceTemplate": "go"
+    },
+    {
+      "description": "更新 uvx 執行的 Semgrep CE",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/Toolkit-Security\\.yml$/"
+      ],
+      "matchStrings": [
+        "--from 'semgrep==(?<currentValue>[0-9.]+)'"
+      ],
+      "depNameTemplate": "semgrep",
+      "datasourceTemplate": "pypi",
+      "versioningTemplate": "pep440"
     }
-  ]
+  ],
+  "pep723": {
+    "managerFilePatterns": [
+      "/^scripts/.*\\.py$/"
+    ]
+  }
 }

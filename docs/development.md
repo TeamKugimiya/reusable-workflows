@@ -49,10 +49,10 @@ bash scripts/security-baseline-contract-test.sh
 ### Actions 安全稽核
 
 ```bash
-uvx zizmor@1.29.0 --min-severity low --persona regular .
+uvx zizmor@1.30.1 --min-severity low --persona regular .
 ```
 
-`_zizmor.yml` 會於 PR 與 main push 以相同參數執行 [zizmor](https://docs.zizmor.sh/)，finding 以 annotation 標在 diff 上並擋下 PR。設定放在 repo root 的 `zizmor.yml`，zizmor 會自動探索，本地執行不必另外指定 `--config`。zizmor 版本固定在 workflow 的 `version` 輸入（決定實際執行的 container），由 `.github/renovate.json` 的 custom manager 提出更新。
+`_zizmor.yml` 會於 PR 與 main push 以相同參數執行 [zizmor](https://docs.zizmor.sh/)，finding 以 annotation 標在 diff 上並擋下 PR。設定放在 repo root 的 `zizmor.yml`，zizmor 會自動探索，本地執行不必另外指定 `--config`。zizmor 使用 `_zizmor.yml` 釘選的 Action commit 內建預設版本與 container digest（目前為 1.30.1），由 Renovate 的 `github-actions` manager 更新 Action 時一起更新。不另設 `version` 輸入，避免 Renovate 單獨升級 container 版本後超出 Action 的支援清單，導致 PR 與 main 都出現 `Unknown version`。更新 Action 時也要同步上方本地檢查指令。
 
 豁免只有兩種寫法，都必須留下原因：
 
@@ -72,7 +72,7 @@ uvx zizmor@1.29.0 --min-severity low --persona regular .
 
 共用 CI 固定三平台 matrix、檢查工具版本與五個 release targets。專案特有差異只能透過受限 profile 表達：`translation-toolkit` 啟用真實平台 integration（跑哪些 live 測試由該 caller 的 `integration` stage 決定，目前是 CurseForge live 加上 Modrinth staging），`paratranz-toolkit` 啟用 built-binary E2E coverage，`modpack-toolkit` 使用不同的版本 metadata／notes profile；都不能傳入任意 shell command。caller 範例見 [`example/go-toolkit.md`](example/go-toolkit.md)。
 
-Go check tools 以 `go install <module>@<version>` 固定在 workflow；`.github/renovate.json` 的 regex manager 負責提出版本更新。官方 Actions 以完整 commit SHA 固定並旁註 release tag。
+Go check tools 以 `go install <module>@<version>` 固定在 workflow；`.github/renovate.json` 的 regex manager 負責提出版本更新。官方 Actions 以完整 commit SHA 固定並旁註 release tag。文件產生器的 PyYAML 以 PEP 723 固定版本，由 Renovate 的 `pep723` manager 更新；Semgrep CE 由 PyPI regex manager 更新。下載 binary 的工具必須同時更新版本與兩種 Linux 架構的 SHA-256，不能只替換 URL 版號。
 
 靜態檢查的 `~/go/bin` 快取依 runner OS／架構、Go 版本與四個工具版號隔離，只在完整命中時略過安裝。
 快取鍵的工具版號直接從同一份安裝腳本取得；Renovate 更新 `go install` 時會同時使舊快取失效。
