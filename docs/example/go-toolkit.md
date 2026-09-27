@@ -11,7 +11,7 @@
 | CI | 三平台 build、unit／E2E、module hygiene、固定 lint tools、六個跨平台 binary 的編譯與 Artifact 上傳完全共用 | `translation-toolkit` 保留真實平台 live integration（由其 `scripts/check.sh integration` 決定清單：CurseForge live 加 Modrinth staging）；`paratranz-toolkit` 保留 built-binary E2E coverage |
 | Security | `govulncheck`、`gosec`、Trivy、Semgrep CE、OpenGrep、Betterleaks 與 Gitleaks 的版本、規則、checksum、canary、SARIF 與 enforcement 完全共用 | 各 repository 保存自己的 `.github/security-baseline.json`，只承認已審查的既有 SAST finding |
 | Build metadata | translation／paratranz 使用 `internal/buildinfo` 與 JSON metadata | modpack 使用 `internal/toolkit.Version` 與純文字 version profile |
-| Release assets | 共同產生 Linux amd64／arm64、Darwin amd64／arm64、Windows amd64 與 `SHA512SUMS` | 只有 binary 名稱不同 |
+| Release assets | 共同產生 Linux amd64／arm64、Darwin amd64／arm64、Windows amd64／arm64 與 `SHA512SUMS` | 只有 binary 名稱不同 |
 | Release policy | 共同限制 `vX.Y.Z`、預設分支、tag 不可重複，且在 tag 前執行 gate、checksum 與版本 smoke test | buildinfo profile 讀正式 changelog；modpack profile 使用 GitHub-generated notes |
 
 ## CI
@@ -106,6 +106,10 @@ jobs:
       binary_name: paratranz-tool
 ```
 
-`translation-toolkit` 將最後一行改為 `binary_name: translation-tool`。`modpack-toolkit` 另傳 `release_profile: modpack-toolkit`。共用 workflow 只允許從 repository 預設分支發佈，並依序完成 release gate、profile-specific metadata／notes 檢查、五平台 cross-compile、`SHA512SUMS` 自我驗證、Linux amd64 版本 smoke test、tag 與 GitHub Release。
+`translation-toolkit` 將最後一行改為 `binary_name: translation-tool`。`modpack-toolkit` 另傳 `release_profile: modpack-toolkit`。共用 workflow 只允許從 repository 預設分支發佈，並依序完成 release gate、profile-specific metadata／notes 檢查、六平台 cross-compile、`SHA512SUMS` 自我驗證、Linux runner 原生架構的版本 smoke test、tag 與 GitHub Release。
 
 正式 caller 應 pin 已發布的 reusable-workflows release tag 或 commit；不要使用 `main`、`latest` 或其他浮動 branch。
+
+`toolkit-ui` caller 傳入 `binary_name: toolkit-ui` 與 `release_profile: toolkit-ui`。
+此 profile 與 `buildinfo` 共用版本注入及 changelog release notes，但使用 `-version`
+驗證版本、commit 與建構時間，不要求 UI 提供 CLI 的 `version --format json` 子命令。

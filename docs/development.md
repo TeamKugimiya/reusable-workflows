@@ -38,7 +38,7 @@ uv run scripts/gen_workflow_docs.py
 uv run scripts/gen_workflow_docs.py --check
 ```
 
-`docs/` 或 `README.md` 與 workflow 定義不同步時 exit 1。CI workflow `_docs-check.yml` 會於 PR 自動執行文件同步與 security baseline contract test。產生器會合併 workflow 與各 job 所需的最高 permissions，並帶入 caller 範例，避免文件看似可用、實際卻因呼叫端未授權而失敗。
+`docs/` 或 `README.md` 與 workflow 定義不同步時 exit 1。CI workflow `_docs-check.yml` 會於 PR 自動執行文件同步、security baseline 與 release profile contract tests。產生器會合併 workflow 與各 job 所需的最高 permissions，並帶入 caller 範例，避免文件看似可用、實際卻因呼叫端未授權而失敗。
 
 Security baseline finding 的 identity 固定為 `rule_id`、path 與 snippet；SARIF line 只用於 summary 與 annotation 診斷，不參與 baseline 比對。因此無關插行不會把既有 finding 誤報為新發現，但 rule、path 或 snippet 任一改變仍必須重新審查。本地可單獨執行：
 
@@ -68,9 +68,9 @@ uvx zizmor@1.30.1 --min-severity low --persona regular .
 - `go.mod` 的精確 Go patch version；`actions/setup-go` 直接讀取該檔，CI 與 release 不另存一份版本。
 - 可執行的 `scripts/check.sh`，至少支援 `build`、`fmt-check`、`vet`、`lint`、`staticcheck`、`vuln`、`unit`、`e2e` 與 `tidy` stages。啟用 `integration_profile` 的 caller 另須提供 `integration` stage，並在該 stage 內持有完整的 live 測試清單、`INTEGRATION_TESTS` 與 timeout；共用 workflow 不列舉測試名稱，否則 caller 新增 live 案例時會靜默不被執行。
 - `.github/security-baseline.json` schema 1；只記錄已人工審查的既有 `gosec`、Semgrep 與 OpenGrep findings，identity 為 `rule_id`、path 與 snippet，line 僅供診斷；不能把新 finding 自動加入 baseline。
-- 預設 `buildinfo` release profile 需要 `internal/buildinfo` 的 `Version`、`Commit`、`BuildTime`、JSON version output 與正式 `CHANGELOG.md` 段落；`modpack-toolkit` profile 則需要 `internal/toolkit.Version` 與純文字 `<binary> version`，release notes 由 GitHub 產生。
+- 預設 `buildinfo` release profile 需要 `internal/buildinfo` 的 `Version`、`Commit`、`BuildTime`、JSON version output 與正式 `CHANGELOG.md` 段落；`toolkit-ui` profile 使用相同的 metadata 與 changelog，但以 `<binary> -version` 的文字輸出驗證版本、commit 與建構時間；`modpack-toolkit` profile 則需要 `internal/toolkit.Version` 與純文字 `<binary> version`，release notes 由 GitHub 產生。
 
-共用 CI 固定三平台 matrix、檢查工具版本與五個 release targets。專案特有差異只能透過受限 profile 表達：`translation-toolkit` 啟用真實平台 integration（跑哪些 live 測試由該 caller 的 `integration` stage 決定，目前是 CurseForge live 加上 Modrinth staging），`paratranz-toolkit` 啟用 built-binary E2E coverage，`modpack-toolkit` 使用不同的版本 metadata／notes profile；都不能傳入任意 shell command。caller 範例見 [`example/go-toolkit.md`](example/go-toolkit.md)。
+共用 CI 固定三平台 matrix、檢查工具版本與六個 release targets。專案特有差異只能透過受限 profile 表達：`translation-toolkit` 啟用真實平台 integration（跑哪些 live 測試由該 caller 的 `integration` stage 決定，目前是 CurseForge live 加上 Modrinth staging），`paratranz-toolkit` 啟用 built-binary E2E coverage，`modpack-toolkit` 使用不同的版本 metadata／notes profile；都不能傳入任意 shell command。caller 範例見 [`example/go-toolkit.md`](example/go-toolkit.md)。
 
 Go check tools 以 `go install <module>@<version>` 固定在 workflow；`.github/renovate.json` 的 regex manager 負責提出版本更新。官方 Actions 以完整 commit SHA 固定並旁註 release tag。文件產生器的 PyYAML 以 PEP 723 固定版本，由 Renovate 的 `pep723` manager 更新；Semgrep CE 由 PyPI regex manager 更新。下載 binary 的工具必須同時更新版本與兩種 Linux 架構的 SHA-256，不能只替換 URL 版號。
 
@@ -88,3 +88,9 @@ Go check tools 以 `go install <module>@<version>` 固定在 workflow；`.github
 - **run 傳參**：workflow input 與 `github.*` 一律經 `env:` 傳入後以 shell 變數引用，不直接在 `run:` 內插值。選擇性參數用陣列組裝（`args+=(--version "$X")`），不要靠字串拼接
 - **Toolkit checksum**：`setup-toolkit` 預設 `verify_checksum: true`，安裝前一律以 release 的 `SHA512SUMS` 驗證 binary。只有尚未發佈 `SHA512SUMS` 的 toolkit 才可暫時明寫 `verify_checksum: false` 並附 TODO；目前僅 `modpack-toolkit`（最新 `v1.1.0` 尚無 checksum）。`translation-toolkit` 需 `v1.8.0` 以上
 - **Go toolkit caller**：caller 只保留 trigger、最小 permissions、binary 名稱與 integration profile；build matrix、security tool pins、release assets 與 smoke test 不得複製回 caller。已審查 finding baseline 屬於 caller repository，不能集中後套用到另一個 codebase
+
+Release profile 的版本檢查以 workflow 原始 shell 片段回歸測試，驗證三種 profile 的參數與錯誤 metadata 拒絕行為：
+
+```bash
+uv run scripts/release-profile-contract-test.py
+```

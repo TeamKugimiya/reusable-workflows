@@ -1,4 +1,4 @@
-# summary: 驗證 release gate，依受限 toolkit profile 建構五平台 binary、SHA512SUMS、版本 smoke test 並建立 GitHub Release
+# summary: 驗證 release gate，依受限 toolkit profile 建構六平台 binary、SHA512SUMS、版本 smoke test 並建立 GitHub Release
 # category: 工具鏈
 name: Go Toolkit｜發佈
 
@@ -17,7 +17,7 @@ on:
         required: false
         type: string
         default: "buildinfo"
-        description: "版本 metadata 契約；可用 ``buildinfo`` 或 ``modpack-toolkit``"
+        description: "版本 metadata 契約；可用 ``buildinfo``、``toolkit-ui`` 或 ``modpack-toolkit``"
 
 permissions:
   contents: read
@@ -63,9 +63,9 @@ jobs:
             exit 1
           fi
           case "$RELEASE_PROFILE" in
-            buildinfo | modpack-toolkit) ;;
+            buildinfo | toolkit-ui | modpack-toolkit) ;;
             *)
-              echo "::error::release_profile 必須是 buildinfo 或 modpack-toolkit"
+              echo "::error::release_profile 必須是 buildinfo、toolkit-ui 或 modpack-toolkit"
               exit 1
               ;;
           esac
@@ -73,7 +73,7 @@ jobs:
             echo "::error::只能從預設分支 ${DEFAULT_BRANCH} 發佈；目前 ref 是 ${GITHUB_REF}"
             exit 1
           fi
-          if [ "$RELEASE_PROFILE" = buildinfo ] && ! grep -qF "## ${RELEASE_VERSION}（" CHANGELOG.md; then
+          if [ "$RELEASE_PROFILE" != modpack-toolkit ] && ! grep -qF "## ${RELEASE_VERSION}（" CHANGELOG.md; then
             echo "::error::CHANGELOG.md 缺少 '## ${RELEASE_VERSION}（...）' 段落"
             echo "請先依 CONTRIBUTING.md 將未發佈段落提升為正式版本。"
             exit 1
@@ -156,7 +156,7 @@ jobs:
           commit="$(git rev-parse HEAD)"
           build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           case "$RELEASE_PROFILE" in
-            buildinfo)
+            buildinfo | toolkit-ui)
               package="github.com/${GITHUB_REPOSITORY}/internal/buildinfo"
               ldflags="-s -w -X ${package}.Version=${RELEASE_VERSION} -X ${package}.Commit=${commit} -X ${package}.BuildTime=${build_time}"
               ;;
@@ -220,6 +220,12 @@ jobs:
                 '.name == $name and .version == $version and .commit == $commit and .build_time == $build_time and .platform == $platform' \
                 release-version.json >/dev/null
               ;;
+            toolkit-ui)
+              [ "$(timeout 15s "$binary" -version)" = "${BINARY_NAME} ${RELEASE_VERSION} (commit ${BUILD_COMMIT}, built ${BUILD_TIME})" ] || {
+                echo "::error::toolkit-ui binary -version smoke test 失敗"
+                exit 1
+              }
+              ;;
             modpack-toolkit)
               [ "$("$binary" version)" = "$RELEASE_VERSION" ] || {
                 echo "::error::modpack-toolkit binary version smoke test 失敗"
@@ -229,7 +235,7 @@ jobs:
           esac
 
       - name: Extract release notes
-        if: inputs.release_profile == 'buildinfo'
+        if: inputs.release_profile != 'modpack-toolkit'
         env:
           RELEASE_VERSION: ${{ inputs.version }}
         shell: bash
@@ -267,7 +273,7 @@ jobs:
         run: |
           set -euo pipefail
           case "$RELEASE_PROFILE" in
-            buildinfo)
+            buildinfo | toolkit-ui)
               gh release create "$RELEASE_VERSION" dist/* \
                 --title "$RELEASE_VERSION" \
                 --notes-file release-notes.md
