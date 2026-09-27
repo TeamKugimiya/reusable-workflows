@@ -18,7 +18,7 @@ on:
         required: false
         type: string
         default: "none"
-        description: "額外真實網路測試；可用 ``none`` 或 ``translation-toolkit``"
+        description: "額外真實網路測試；可用 ``none`` 或 ``translation-toolkit``。啟用時執行 caller 的 ``./scripts/check.sh integration``，live 測試清單由 caller 擁有"
       e2e_profile:
         required: false
         type: string
@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [blacksmith-8vcpu-ubuntu-2404-arm, blacksmith-6vcpu-macos-latest, blacksmith-4vcpu-windows-2025]
+        os: [ubuntu-26.04-arm, macos-latest, windows-2025]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -116,7 +116,7 @@ jobs:
 
   lint:
     name: Static analysis
-    runs-on: blacksmith-8vcpu-ubuntu-2404-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -124,18 +124,37 @@ jobs:
           persist-credentials: false
 
       - name: Set up Go
+        id: go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
-      - name: Install pinned check tools
+      - name: Prepare pinned check tools
+        id: check-tools
         shell: bash
         run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/install-check-tools.sh" <<'INSTALL'
           set -euo pipefail
           go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
           go install mvdan.cc/gofumpt@v0.12.0
           go install honnef.co/go/tools/cmd/staticcheck@v0.8.1
           go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+          INSTALL
+          versions=$(sed -n 's/^go install .*@//p' "$RUNNER_TEMP/install-check-tools.sh" | paste -sd '-' -)
+          echo "versions=$versions" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pinned check tools
+        id: check-tools-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/bin
+          key: check-tools-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.go.outputs.go-version }}-${{ steps.check-tools.outputs.versions }}
+
+      - name: Install pinned check tools
+        if: steps.check-tools-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: bash "$RUNNER_TEMP/install-check-tools.sh"
 
       - name: Check gofumpt formatting
         run: ./scripts/check.sh fmt-check
@@ -159,7 +178,7 @@ jobs:
       inputs.integration_profile == 'translation-toolkit' &&
       (github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
+    runs-on: ubuntu-26.04-arm
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -185,22 +204,18 @@ jobs:
             exit 1
           fi
 
-      - name: CurseForge live API tests (unit)
+      # live 測試的清單、timeout 與 INTEGRATION_TESTS 由 caller 的 check.sh 擁有。
+      # 共用 workflow 自己硬編測試名稱時，caller 新增的 live 案例不會被選中，
+      # job 卻仍然是綠的——Modrinth 覆蓋就是這樣靜默消失過一次。
+      - name: Live integration tests
         env:
-          INTEGRATION_TESTS: "1"
           CURSEFORGE_API_KEY: ${{ secrets.curseforge_api_key }}
-        run: go test -v -race -timeout 300s -run 'TestCurseForgeLive' ./internal/platform/
-
-      - name: Integration tests (E2E)
-        env:
-          INTEGRATION_TESTS: "1"
-          CURSEFORGE_API_KEY: ${{ secrets.curseforge_api_key }}
-        run: go test -v -timeout 900s -run 'TestInitIntegration|TestSyncIntegration|TestDiffIntegration' ./e2e/
+        run: ./scripts/check.sh integration
 
   cross-compile:
     name: Cross-compile release targets
     needs: [build, lint]
-    runs-on: blacksmith-8vcpu-ubuntu-2404-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

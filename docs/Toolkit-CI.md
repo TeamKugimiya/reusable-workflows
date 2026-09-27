@@ -19,7 +19,7 @@
 | --- | --- | --- | --- | --- |
 | `binary_name` | `string` | ✅ | — | 產出的 CLI binary 名稱，例如 ``translation-tool`` 或 ``paratranz-tool`` |
 | `artifact_retention_days` | `number` | — | `14` | 建構結果 Artifact 保留天數，預設為 ``14`` |
-| `integration_profile` | `string` | — | `none` | 額外真實網路測試；可用 ``none`` 或 ``translation-toolkit`` |
+| `integration_profile` | `string` | — | `none` | 額外真實網路測試；可用 ``none`` 或 ``translation-toolkit``。啟用時執行 caller 的 ``./scripts/check.sh integration``，live 測試清單由 caller 擁有 |
 | `e2e_profile` | `string` | — | `standard` | E2E 執行模式；可用 ``standard`` 或含 built-binary coverage 的 ``paratranz-toolkit`` |
 
 ## Outputs

@@ -66,13 +66,16 @@ uvx zizmor@1.29.0 --min-severity low --persona regular .
 `Toolkit-CI.yml`、`Toolkit-Security.yml` 與 `Toolkit-Release.yml` 共同服務 `translation-toolkit`、`paratranz-toolkit` 與 `modpack-toolkit`。三個 caller repository 必須提供：
 
 - `go.mod` 的精確 Go patch version；`actions/setup-go` 直接讀取該檔，CI 與 release 不另存一份版本。
-- 可執行的 `scripts/check.sh`，至少支援 `build`、`fmt-check`、`vet`、`lint`、`staticcheck`、`vuln`、`unit`、`e2e` 與 `tidy` stages。
+- 可執行的 `scripts/check.sh`，至少支援 `build`、`fmt-check`、`vet`、`lint`、`staticcheck`、`vuln`、`unit`、`e2e` 與 `tidy` stages。啟用 `integration_profile` 的 caller 另須提供 `integration` stage，並在該 stage 內持有完整的 live 測試清單、`INTEGRATION_TESTS` 與 timeout；共用 workflow 不列舉測試名稱，否則 caller 新增 live 案例時會靜默不被執行。
 - `.github/security-baseline.json` schema 1；只記錄已人工審查的既有 `gosec`、Semgrep 與 OpenGrep findings，identity 為 `rule_id`、path 與 snippet，line 僅供診斷；不能把新 finding 自動加入 baseline。
 - 預設 `buildinfo` release profile 需要 `internal/buildinfo` 的 `Version`、`Commit`、`BuildTime`、JSON version output 與正式 `CHANGELOG.md` 段落；`modpack-toolkit` profile 則需要 `internal/toolkit.Version` 與純文字 `<binary> version`，release notes 由 GitHub 產生。
 
-共用 CI 固定三平台 matrix、檢查工具版本與五個 release targets。專案特有差異只能透過受限 profile 表達：`translation-toolkit` 啟用真實 CurseForge integration，`paratranz-toolkit` 啟用 built-binary E2E coverage，`modpack-toolkit` 使用不同的版本 metadata／notes profile；都不能傳入任意 shell command。caller 範例見 [`example/go-toolkit.md`](example/go-toolkit.md)。
+共用 CI 固定三平台 matrix、檢查工具版本與五個 release targets。專案特有差異只能透過受限 profile 表達：`translation-toolkit` 啟用真實平台 integration（跑哪些 live 測試由該 caller 的 `integration` stage 決定，目前是 CurseForge live 加上 Modrinth staging），`paratranz-toolkit` 啟用 built-binary E2E coverage，`modpack-toolkit` 使用不同的版本 metadata／notes profile；都不能傳入任意 shell command。caller 範例見 [`example/go-toolkit.md`](example/go-toolkit.md)。
 
 Go check tools 以 `go install <module>@<version>` 固定在 workflow；`.github/renovate.json` 的 regex manager 負責提出版本更新。官方 Actions 以完整 commit SHA 固定並旁註 release tag。
+
+靜態檢查的 `~/go/bin` 快取依 runner OS／架構、Go 版本與四個工具版號隔離，只在完整命中時略過安裝。
+快取鍵的工具版號直接從同一份安裝腳本取得；Renovate 更新 `go install` 時會同時使舊快取失效。
 
 安全 workflow 使用 `govulncheck`、`gosec`、Trivy、Semgrep CE、OpenGrep、Betterleaks 與 Gitleaks。所有工具與 Semgrep rules 都固定版本或 commit；release binary 下載後先驗證 SHA-256。Semgrep 只透過 `uvx --managed-python --isolated` 執行，OpenGrep 使用官方 standalone binary。Gitleaks 固定在 `v8.29.1`，避開 `v8.30.1` 預設規則不命中的 released-binary regression；動態 canary 防止未來再靜默失效。Trivy、Betterleaks 與 Gitleaks finding 直接阻擋；SAST 只允許 baseline 中已審查的既有項目。
 

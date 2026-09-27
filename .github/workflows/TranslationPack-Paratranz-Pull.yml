@@ -82,7 +82,7 @@ on:
       runs_on:
         required: false
         type: string
-        default: "blacksmith-4vcpu-ubuntu-2404-arm"
+        default: "ubuntu-26.04-arm"
         description: "執行環境"
       report_retention_days:
         required: false

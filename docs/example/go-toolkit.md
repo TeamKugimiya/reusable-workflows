@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | Go 與 CLI baseline | Go patch 一律由 caller `go.mod` 決定 | modpack 仍為 standard-library CLI；另外兩庫共用 Cobra／color baseline |
 | Repository gate | 三庫都提供相同的 `scripts/check.sh` stage names，pre-commit 另由 `scripts/pre-submit.sh` 串接完整安全 gate | 每個 stage 的測試 package／timeout 由 caller repository 擁有 |
-| CI | 三平台 build、unit／E2E、module hygiene、固定 lint tools、六個跨平台 binary 的編譯與 Artifact 上傳完全共用 | `translation-toolkit` 保留 CurseForge live integration；`paratranz-toolkit` 保留 built-binary E2E coverage |
+| CI | 三平台 build、unit／E2E、module hygiene、固定 lint tools、六個跨平台 binary 的編譯與 Artifact 上傳完全共用 | `translation-toolkit` 保留真實平台 live integration（由其 `scripts/check.sh integration` 決定清單：CurseForge live 加 Modrinth staging）；`paratranz-toolkit` 保留 built-binary E2E coverage |
 | Security | `govulncheck`、`gosec`、Trivy、Semgrep CE、OpenGrep、Betterleaks 與 Gitleaks 的版本、規則、checksum、canary、SARIF 與 enforcement 完全共用 | 各 repository 保存自己的 `.github/security-baseline.json`，只承認已審查的既有 SAST finding |
 | Build metadata | translation／paratranz 使用 `internal/buildinfo` 與 JSON metadata | modpack 使用 `internal/toolkit.Version` 與純文字 version profile |
 | Release assets | 共同產生 Linux amd64／arm64、Darwin amd64／arm64、Windows amd64 與 `SHA512SUMS` | 只有 binary 名稱不同 |
@@ -38,7 +38,7 @@ jobs:
       e2e_profile: paratranz-toolkit
 ```
 
-`translation-toolkit` 額外啟用受限的 CurseForge integration profile。來自 fork 的 PR 會整個略過 live integration job；同 repository PR 與 `main` push 若未設定 secret 則明確失敗：
+`translation-toolkit` 額外啟用受限的 integration profile，該 job 呼叫 caller 的 `./scripts/check.sh integration`。來自 fork 的 PR 會整個略過 live integration job；同 repository PR 與 `main` push 若未設定 secret 則明確失敗：
 
 ```yaml
 jobs:
