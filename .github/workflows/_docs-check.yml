@@ -10,6 +10,7 @@ on:
       - "docs/**.md"
       - "scripts/gen_workflow_docs.py"
       - "scripts/security-baseline-contract-test.sh"
+      - "scripts/release-profile-contract-test.py"
       - "README.md"
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - "docs/**.md"
       - "scripts/gen_workflow_docs.py"
       - "scripts/security-baseline-contract-test.sh"
+      - "scripts/release-profile-contract-test.py"
       - "README.md"
 
 permissions:
@@ -35,3 +37,5 @@ jobs:
       - run: uv run scripts/gen_workflow_docs.py --check
 
       - run: bash scripts/security-baseline-contract-test.sh
+
+      - run: uv run scripts/release-profile-contract-test.py

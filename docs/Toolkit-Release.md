@@ -2,7 +2,7 @@
 
 # Go Toolkit｜發佈
 
-驗證 release gate，依受限 toolkit profile 建構五平台 binary、SHA512SUMS、版本 smoke test 並建立 GitHub Release
+驗證 release gate，依受限 toolkit profile 建構六平台 binary、SHA512SUMS、版本 smoke test 並建立 GitHub Release
 
 - **檔案**：[`.github/workflows/Toolkit-Release.yml`](../.github/workflows/Toolkit-Release.yml)
 - **分類**：工具鏈
@@ -19,7 +19,7 @@
 | --- | --- | --- | --- | --- |
 | `version` | `string` | ✅ | — | Semantic version tag，格式必須是 ``vX.Y.Z`` |
 | `binary_name` | `string` | ✅ | — | 產出的 CLI binary 名稱，例如 ``translation-tool`` 或 ``paratranz-tool`` |
-| `release_profile` | `string` | — | `buildinfo` | 版本 metadata 契約；可用 ``buildinfo`` 或 ``modpack-toolkit`` |
+| `release_profile` | `string` | — | `buildinfo` | 版本 metadata 契約；可用 ``buildinfo``、``toolkit-ui`` 或 ``modpack-toolkit`` |
 
 ## Outputs
 
