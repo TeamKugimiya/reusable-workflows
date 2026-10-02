@@ -405,7 +405,7 @@ jobs:
             --managed-python \
             --python 3.13 \
             --isolated \
-            --from 'semgrep==1.178.0' \
+            --from 'semgrep==1.179.0' \
             semgrep scan \
             --metrics off \
             --no-rewrite-rule-ids \
