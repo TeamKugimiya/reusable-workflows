@@ -2,7 +2,7 @@
 
 # Go Toolkit｜安全掃描
 
-以免費工具執行 Go 弱點、SAST、依賴、設定與 secret 掃描，並封鎖新增 finding
+以 govulncheck 檢查實際呼叫到的已知弱點，並以 Betterleaks 掃描完整 Git 歷史的 secret
 
 - **檔案**：[`.github/workflows/Toolkit-Security.yml`](../.github/workflows/Toolkit-Security.yml)
 - **分類**：工具鏈

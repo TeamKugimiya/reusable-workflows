@@ -25,19 +25,6 @@
         "go install (?<depName>[^@\\s]+)@(?<currentValue>v[0-9][^\\s]*)"
       ],
       "datasourceTemplate": "go"
-    },
-    {
-      "description": "更新 uvx 執行的 Semgrep CE",
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/Toolkit-Security\\.yml$/"
-      ],
-      "matchStrings": [
-        "--from 'semgrep==(?<currentValue>[0-9.]+)'"
-      ],
-      "depNameTemplate": "semgrep",
-      "datasourceTemplate": "pypi",
-      "versioningTemplate": "pep440"
     }
   ],
   "pep723": {

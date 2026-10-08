@@ -9,7 +9,6 @@ on:
       - ".github/workflows/**.yml"
       - "docs/**.md"
       - "scripts/gen_workflow_docs.py"
-      - "scripts/security-baseline-contract-test.sh"
       - "scripts/release-profile-contract-test.py"
       - "README.md"
   pull_request:
@@ -17,7 +16,6 @@ on:
       - ".github/workflows/**.yml"
       - "docs/**.md"
       - "scripts/gen_workflow_docs.py"
-      - "scripts/security-baseline-contract-test.sh"
       - "scripts/release-profile-contract-test.py"
       - "README.md"
 
@@ -35,7 +33,5 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
 
       - run: uv run scripts/gen_workflow_docs.py --check
-
-      - run: bash scripts/security-baseline-contract-test.sh
 
       - run: uv run scripts/release-profile-contract-test.py
