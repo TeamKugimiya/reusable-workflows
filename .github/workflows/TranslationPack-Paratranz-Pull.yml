@@ -615,7 +615,7 @@ jobs:
           persist-credentials: false
 
       - name: 下載已驗證 translation patch
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.sync.outputs.state_artifact }}
           path: ${{ runner.temp }}/paratranz-pull-state
