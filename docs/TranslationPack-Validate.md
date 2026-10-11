@@ -24,6 +24,7 @@
 | `strict` | `boolean` | — | `false` | 是否啟用 ``--strict``，將 warning 也視為驗證失敗 |
 | `job_summary` | `boolean` | — | `true` | 是否將 warning 以上的完整診斷報告寫入 job summary。annotation 有每種等級 10 則的顯示上限，summary 沒有，適合放專案整體的健康清單；``remote: true`` 時會略過以免重跑一次遠端驗證 |
 | `modrinth_user_agent` | `string` | — | — | 遠端驗證 Modrinth 時使用的 ``MODRINTH_USER_AGENT``；留空則使用專案 ``config/settings.json`` 或工具預設 |
+| `external_sources` | `string` | — | — | 執行 translation-tool 前要取得的外部來源，每行一個 GitHub Release 檔案網址；會以 Release API 的 SHA-256 驗證並解壓到 ``Translation/``，詳見 ``fetch-external-sources`` action。留空則不取得 |
 | `toolkit_version` | `string` | — | — | 要使用的 translation-toolkit release tag；留空抓 latest。安裝時會驗證 SHA512SUMS，因此必須是 ``v1.8.0`` 以後的版本 |
 | `runs_on` | `string` | — | `ubuntu-26.04-arm` | 執行環境，預設為 ``ubuntu-26.04-arm`` |
 

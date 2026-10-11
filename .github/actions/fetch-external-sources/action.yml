@@ -1,0 +1,26 @@
+name: Fetch external translation sources
+description: 下載 GitHub Release 上的外部來源內容，驗證 SHA-256 與 zip 項目後解壓到 Translation/
+
+inputs:
+  sources:
+    required: true
+    description: "每行一個 GitHub Release 檔案網址（https://github.com/<owner>/<repo>/releases/download/<tag>/<asset>）；空行與 # 開頭的行略過"
+  project_path:
+    required: false
+    default: "."
+    description: 翻譯專案根目錄，內容解壓到 <project_path>/Translation/
+  token:
+    required: false
+    default: ${{ github.token }}
+    description: 查詢 Release API 用的 token；公開 repository 使用預設的 github.token 即可
+
+runs:
+  using: composite
+  steps:
+    - name: 下載並解壓外部來源
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        PROJECT_PATH: ${{ inputs.project_path }}
+        SOURCES: ${{ inputs.sources }}
+      run: bash "${GITHUB_ACTION_PATH}/fetch.sh"

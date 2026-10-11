@@ -40,6 +40,11 @@ on:
         type: string
         default: ""
         description: "遠端驗證 Modrinth 時使用的 ``MODRINTH_USER_AGENT``；留空則使用專案 ``config/settings.json`` 或工具預設"
+      external_sources:
+        required: false
+        type: string
+        default: ""
+        description: "執行 translation-tool 前要取得的外部來源，每行一個 GitHub Release 檔案網址；會以 Release API 的 SHA-256 驗證並解壓到 ``Translation/``，詳見 ``fetch-external-sources`` action。留空則不取得"
       toolkit_version:
         required: false
         type: string
@@ -70,6 +75,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: 取得外部來源
+        if: ${{ inputs.external_sources != '' }}
+        uses: TeamKugimiya/reusable-workflows/.github/actions/fetch-external-sources@v1
+        with:
+          sources: ${{ inputs.external_sources }}
+          project_path: ${{ inputs.project_path }}
 
       - name: 安裝 translation-tool
         uses: TeamKugimiya/reusable-workflows/.github/actions/setup-toolkit@v1
