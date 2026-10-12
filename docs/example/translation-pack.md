@@ -108,6 +108,33 @@ Pull workflow 先輸出 `none`、`pull_existing` 或 `generate_and_pull`；`none
 
 PR 合併後再由既有的 TranslationPack Build／Release caller 發布；同步 job 本身不直接發布。
 
+## 外部來源：建構前取得其他專案的內容
+
+外部來源內容（`metadata.json` 的 `external: true`）不進本專案版控。驗證與建構都要先取得，
+否則 `external-shadowed` 無從比對，所以兩個 job 都要填同一份 `external_sources`：
+
+```yaml
+jobs:
+  validate:
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Validate.yml@v1
+    with:
+      external_sources: https://github.com/TeamKugimiya/MMLP-CN-to-ZW/releases/download/latest/MMLP-CN-to-ZW.zip
+    secrets: inherit
+
+  build:
+    needs: validate
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Build.yml@v1
+    with:
+      pack_name: ModsTranslationPack
+      external_sources: https://github.com/TeamKugimiya/MMLP-CN-to-ZW/releases/download/latest/MMLP-CN-to-ZW.zip
+    secrets: inherit
+```
+
+只接受 GitHub Release 的檔案網址。下載後以 Release API 提供的 SHA-256 驗證；先檢查 zip 的絕對路徑、
+`..` 與反斜線，再解到暫存目錄，依實際結果拒絕 symlink、特殊檔案、控制字元與檔案數不符的名稱碰撞。
+最上層必須都是安全命名的內容目錄，且不得與 `Translation/` 既有目錄同名；全部檢查通過才移入，
+解壓或檢查失敗會清掉暫存目錄，不覆蓋本專案的內容。
+
 ## 驗證：PR 與 main 都檢查
 
 ```yaml
