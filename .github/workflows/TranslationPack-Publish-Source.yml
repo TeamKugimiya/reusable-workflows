@@ -1,0 +1,163 @@
+# summary: 打包翻譯專案的內容目錄，更新 latest Release 供其他翻譯包作為外部來源
+# category: 翻譯包
+name: 翻譯包｜發佈外部來源
+
+on:
+  workflow_call:
+    inputs:
+      asset_name:
+        required: true
+        type: string
+        description: "Release 檔名，只接受英數字、底線、連字號、加號與點；必須以 ``.zip`` 結尾，不得以點開頭或以 ``.next.zip`` 結尾，例如 ``MMLP-CN-to-ZW.zip``"
+      project_path:
+        required: false
+        type: string
+        default: "."
+        description: "翻譯專案根目錄路徑，打包其 ``Translation/`` 下的內容目錄"
+      runs_on:
+        required: false
+        type: string
+        default: "ubuntu-26.04-arm"
+        description: "執行環境，預設為 ``ubuntu-26.04-arm``"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: 發佈外部來源內容
+    runs-on: ${{ inputs.runs_on }}
+    permissions:
+      contents: write # 上傳 Release asset 與更新 latest tag。
+    concurrency:
+      group: publish-external-source
+      cancel-in-progress: false
+    steps:
+      - name: 檢查輸入與預設分支最新提交
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          ASSET_NAME: ${{ inputs.asset_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$ASSET_NAME" =~ ^[A-Za-z0-9_.+-]+\.zip$ || "$ASSET_NAME" == .* || "$ASSET_NAME" == *.next.zip ]]; then
+            echo "::error::asset_name 必須是安全的 .zip 檔名，不得以 . 開頭或以 .next.zip 結尾"
+            exit 1
+          fi
+          if [ -z "$DEFAULT_BRANCH" ]; then
+            echo "::error::此事件沒有 repository.default_branch，無法判斷預設分支；請從 push 或 workflow_dispatch 呼叫"
+            exit 1
+          fi
+          if [ "$REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
+            echo "::error::發佈外部來源只能從預設分支呼叫"
+            exit 1
+          fi
+          branch_ref=$(jq -rn --arg b "$DEFAULT_BRANCH" '$b|@uri')
+          branch_sha=$(gh api "repos/${REPO}/commits/${branch_ref}" --jq .sha)
+          if [ "$branch_sha" != "$SHA" ]; then
+            printf '::notice::%s 已前進到 %s，略過發佈過期的 %s\n' "$DEFAULT_BRANCH" "$branch_sha" "$SHA"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: ${{ steps.current.outputs.publish == 'true' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 打包內容目錄
+        if: ${{ steps.current.outputs.publish == 'true' }}
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+          ASSET_NAME: ${{ inputs.asset_name }}
+          # 固定 200 MiB，與 .github/actions/fetch-external-sources/fetch.sh 的 MAX_BYTES 同步。
+          MAX_BYTES: "209715200"
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail() { printf '::error::%s\n' "$1" >&2; exit 1; }
+          cd -- "$PROJECT_PATH/Translation" || fail "找不到專案的 Translation/"
+          # glob 在 C locale 依名稱排序；包含隱藏目錄以便拒絕，不依賴 GNU find -printf。
+          export LC_ALL=C
+          shopt -s nullglob dotglob
+          dirs=()
+          count=0
+          for entry in ./*; do
+            # 最上層一般檔案忽略；symlink 不跟隨，避免打包目錄外的內容。
+            [ ! -L "$entry" ] || fail "內容含有 symlink"
+            [ -d "$entry" ] || continue
+            dir=${entry#./}
+            [[ "$dir" != .* ]] || fail "最上層內容目錄不得以 . 開頭"
+            [[ "$dir" =~ ^[A-Za-z0-9_.+-]+$ ]] || fail "最上層內容目錄名稱不安全"
+            special=$(find "$entry" ! -type d ! -type f) || fail "無法檢查內容的檔案型別"
+            [ -z "$special" ] || fail "內容含有 symlink 或特殊檔案"
+            unsafe=$(find "$entry" \( -name '*[[:cntrl:]]*' -o -name '*\\*' \)) || fail "無法檢查內容檔名"
+            [ -z "$unsafe" ] || fail "內容檔名含有控制字元或反斜線"
+            # 取得端 unzip 未使用 -V，會移除一般檔案結尾的 VMS 版本號（也含單獨分號）。
+            versioned=$(find "$entry" -type f -print | awk '/;[0-9]*$/') || fail "無法檢查內容檔案版本號"
+            [ -z "$versioned" ] || fail "一般檔案名稱不得以分號加零個或多個數字結尾"
+            dirs+=("$dir")
+            count=$((count + 1))
+          done
+          [ "$count" -gt 0 ] || fail "Translation/ 沒有任何內容目錄"
+          # 移除同名暫存檔，避免 zip 更新模式帶入舊項目；-- 保留以連字號開頭的目錄名。
+          rm -f "${RUNNER_TEMP}/${ASSET_NAME}"
+          zip -q -r -X "${RUNNER_TEMP}/${ASSET_NAME}" -- "${dirs[@]}"
+          bytes=$(wc -c < "${RUNNER_TEMP}/${ASSET_NAME}")
+          [ "$bytes" -le "$MAX_BYTES" ] || fail "壓縮檔超過外部來源大小上限（${MAX_BYTES} bytes）"
+          echo "::notice::打包 ${count} 個內容目錄"
+
+      - name: 更新 latest Release
+        if: ${{ steps.current.outputs.publish == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          ASSET_NAME: ${{ inputs.asset_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset=$ASSET_NAME
+          next_asset="${asset%.zip}.next.zip"
+          notes="${RUNNER_TEMP}/publish-source-notes.md"
+          # shellcheck disable=SC2016 # 反引號是 Markdown 標記；動態內容只透過 printf 參數傳入。
+          printf '此 Release 提供 translation-toolkit 的外部來源內容 `%s`，**不是資源包**，請勿直接放進遊戲。\n\n其他翻譯包可透過 reusable-workflows 的 `external_sources`，在驗證與建構前下載它並解壓到 `Translation/`。內容在 %s 更新後自動覆蓋，對應的 commit 即 `latest` tag 所指向的 commit。\n' "$asset" "$DEFAULT_BRANCH" > "$notes"
+
+          # 只將 HTTP 404 視為尚未建立；權限、網路與伺服器錯誤都原樣失敗。
+          response="${RUNNER_TEMP}/publish-source-release-response"
+          if gh api "repos/${REPO}/releases/tags/latest" --include > "$response"; then
+            release=$(sed '1,/^\r\{0,1\}$/d' "$response")
+          else
+            status=$?
+            if ! head -n 1 "$response" | grep -Eq '^HTTP/[0-9.]+ 404([[:space:]]|$)'; then
+              echo "::error::無法查詢 latest Release"
+              exit "$status"
+            fi
+            gh release create latest --repo "$REPO" --target "$SHA" --title latest \
+              --latest=false --draft=false --prerelease=false --notes-file "$notes"
+            release=$(gh api "repos/${REPO}/releases/tags/latest")
+          fi
+          next_id=$(jq -r --arg name "$next_asset" '.assets[] | select(.name == $name) | .id' <<<"$release")
+          if [ -n "$next_id" ]; then
+            gh api -X DELETE "repos/${REPO}/releases/assets/${next_id}"
+          fi
+          cp "${RUNNER_TEMP}/${asset}" "${RUNNER_TEMP}/${next_asset}"
+          gh release upload latest "${RUNNER_TEMP}/${next_asset}" --repo "$REPO"
+
+          release=$(gh api "repos/${REPO}/releases/tags/latest")
+          next_id=$(jq -er --arg name "$next_asset" '.assets[] | select(.name == $name) | .id' <<<"$release")
+          old_id=$(jq -r --arg name "$asset" '.assets[] | select(.name == $name) | .id' <<<"$release")
+          if [ -n "$old_id" ]; then
+            gh api -X DELETE "repos/${REPO}/releases/assets/${old_id}"
+          fi
+          gh api -X PATCH "repos/${REPO}/releases/assets/${next_id}" -f name="$asset" > /dev/null
+          gh api -X PATCH "repos/${REPO}/git/refs/tags/latest" -f sha="$SHA" -F force=true > /dev/null
+          gh release edit latest --repo "$REPO" --notes-file "$notes"

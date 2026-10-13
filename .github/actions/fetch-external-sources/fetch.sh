@@ -5,6 +5,7 @@
 # 被 source 時只載入函式。本機 bash 3.2 也要能執行，不使用關聯陣列與 mapfile。
 set -euo pipefail
 
+# 與 .github/workflows/TranslationPack-Publish-Source.yml 打包步驟的 MAX_BYTES 同步。
 readonly MAX_BYTES=$((200 * 1024 * 1024))
 readonly URL_PATTERN='^https://github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/([^/]+)$'
 

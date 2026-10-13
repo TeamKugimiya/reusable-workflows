@@ -38,7 +38,7 @@ uv run scripts/gen_workflow_docs.py
 uv run scripts/gen_workflow_docs.py --check
 ```
 
-`docs/` 或 `README.md` 與 workflow 定義不同步時 exit 1。CI workflow `_docs-check.yml` 會於 PR 自動執行文件同步與 release profile contract tests。產生器會合併 workflow 與各 job 所需的最高 permissions，並帶入 caller 範例，避免文件看似可用、實際卻因呼叫端未授權而失敗。
+`docs/` 或 `README.md` 與 workflow 定義不同步時 exit 1。CI workflow `_docs-check.yml` 會於 PR 自動執行文件同步、release profile contract tests，以及外部來源的取得與發佈合約測試。產生器會合併 workflow 與各 job 所需的最高 permissions，並帶入 caller 範例，避免文件看似可用、實際卻因呼叫端未授權而失敗。
 
 ### Actions 安全稽核
 
@@ -87,3 +87,12 @@ Release profile 的版本檢查以 workflow 原始 shell 片段回歸測試，�
 ```bash
 uv run scripts/release-profile-contract-test.py
 ```
+
+外部來源測試以假的 `gh`／`curl` 執行真實 shell，涵蓋 SHA-256、zip 格式、Release 更新順序與發佈／取得往返，不會寫入 GitHub：
+
+```bash
+uv run scripts/fetch-external-sources-test.py
+uv run scripts/publish-external-source-test.py
+```
+
+發佈測試可透過 `PUBLISH_TEST_BASH=/path/to/bash` 指定 Bash；打包不依賴 GNU `find -printf`，可在 macOS 的 Bash 3.2 與 GNU Bash 5.2 執行。

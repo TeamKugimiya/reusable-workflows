@@ -9,6 +9,7 @@ on:
       - ".github/workflows/**.yml"
       - ".github/actions/**"
       - "scripts/fetch-external-sources-test.py"
+      - "scripts/publish-external-source-test.py"
       - "docs/**.md"
       - "scripts/gen_workflow_docs.py"
       - "scripts/release-profile-contract-test.py"
@@ -18,6 +19,7 @@ on:
       - ".github/workflows/**.yml"
       - ".github/actions/**"
       - "scripts/fetch-external-sources-test.py"
+      - "scripts/publish-external-source-test.py"
       - "docs/**.md"
       - "scripts/gen_workflow_docs.py"
       - "scripts/release-profile-contract-test.py"
@@ -41,3 +43,5 @@ jobs:
       - run: uv run scripts/release-profile-contract-test.py
 
       - run: uv run scripts/fetch-external-sources-test.py
+
+      - run: uv run scripts/publish-external-source-test.py

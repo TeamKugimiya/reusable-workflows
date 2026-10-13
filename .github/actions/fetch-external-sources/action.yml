@@ -1,3 +1,4 @@
+# 發佈端與 zip 格式合約：../../../docs/example/translation-pack.md#來源專案驗證後發佈內容
 name: Fetch external translation sources
 description: 下載 GitHub Release 上的外部來源內容，驗證 SHA-256 與 zip 項目後解壓到 Translation/
 

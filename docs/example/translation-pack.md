@@ -135,6 +135,61 @@ jobs:
 最上層必須都是安全命名的內容目錄，且不得與 `Translation/` 既有目錄同名；全部檢查通過才移入，
 解壓或檢查失敗會清掉暫存目錄，不覆蓋本專案的內容。
 
+### 來源專案：驗證後發佈內容
+
+來源 repo 使用 [TranslationPack-Publish-Source](../TranslationPack-Publish-Source.md) 打包自己的
+`Translation/`。以下範例只在預設分支的 push 發佈，且等待 validate 成功；請將 repo 名稱換成自己的專案，保留條件以防 fork 發佈：
+
+```yaml
+name: External Source CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Validate.yml@v1
+    secrets: inherit
+
+  publish:
+    needs: validate
+    if: >-
+      github.repository == 'TeamKugimiya/MMLP-CN-to-ZW' &&
+      github.event_name == 'push' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    permissions:
+      contents: write
+    uses: TeamKugimiya/reusable-workflows/.github/workflows/TranslationPack-Publish-Source.yml@v1
+    with:
+      asset_name: MMLP-CN-to-ZW.zip
+```
+
+呼叫端的 publish job **必須授權 `contents: write`**；發佈使用 `github.token`，不需額外 secret。
+專案不在 repo 根目錄時，以 `project_path` 指定根目錄。`asset_name` 只接受英數字、`_`、`-`、`+`、`.`，
+須以 `.zip` 結尾，不得以 `.` 開頭或以 `.next.zip` 結尾。
+
+Zip 根目錄直接放內容目錄（例如 `MMLP-A/metadata.json`），不多包一層 `Translation/`，也不是可直接放進遊戲的資源包。
+最上層內容目錄至少一個，依名稱排序，只接受英數字、`_`、`-`、`+`、`.`，且不得以 `.` 開頭。
+最上層一般檔案忽略；symlink、內容中的特殊檔案、控制字元與反斜線檔名會在任何 Release 寫入前被拒絕。
+內容中的一般檔案 basename 不得符合 `;[0-9]*$`（例如 `file;1` 或 `file;`），因為取得端解壓時會移除該後綴，造成變名或同名衝突。
+壓縮檔最多 200 MiB（209715200 bytes）；完成打包後會以實際 byte 數檢查，超限時不寫入 Release，此上限不開放 caller 調整。
+
+發佈支援從預設分支的 `push` 或 `workflow_dispatch` 呼叫；手動呼叫時須選擇預設分支。
+若事件缺少 `repository.default_branch`（例如部分排程事件），會明確失敗，不會另查 API 推測分支。
+Workflow 會拒絕非預設分支呼叫，並在預設分支 HEAD 已前進時略過過期 run。
+因此不要替預設分支的 push 加上 `paths` 過濾：即使後續 commit 只改 README，也要有新 run 接手發佈。
+首次找不到 `latest` Release（HTTP 404）會建立指向本次 commit 的一般 Release，標題為 `latest`，
+並以 `--latest=false` 避免將它標為 GitHub 的 Latest；其他查詢錯誤直接失敗。
+來源 repo **不能啟用 immutable releases**（包含組織強制啟用）：這個流程需要修改 asset 與 tag；若啟用，首次建立的已發佈 Release 將無法再上傳 asset，且 `latest` tag 會被鎖住。
+
+更新沿用先上傳 `.next.zip`、刪除舊 asset、將新檔改名，再移動 `latest` tag 與更新說明的順序。
+**這不是原子換檔**：刪除到改名之間有短暫下載空窗，取得端也可能因查詢 digest 與下載碰到不同版本而失敗。
+上傳失敗仍保留舊 asset；改名失敗可能只剩 `.next.zip`，下次執行會先清除殘留再重試。
+
 ## 驗證：PR 與 main 都檢查
 
 ```yaml
