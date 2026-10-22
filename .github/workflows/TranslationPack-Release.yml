@@ -240,7 +240,7 @@ jobs:
       - name: 發佈至 Modrinth / CurseForge
         id: publish
         if: ${{ inputs.modrinth_id != '' || inputs.curseforge_id != '' }}
-        uses: Kir-Antipov/mc-publish@52307b03863581dec6b652b83e597aec02ebb075 # v3.3.1
+        uses: Kir-Antipov/mc-publish@c23376546a97f5ba7984e94445da359459b14419 # v3.3.2
         with:
           # mc-publish 以「是否有 token」決定要不要發佈該平台，因此未設定 id 時
           # 必須把 token 收斂成 ``${undefined}``，否則 ``secrets: inherit`` 會讓
