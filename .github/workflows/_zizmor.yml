@@ -39,7 +39,7 @@ jobs:
       # 使用此 Action commit 內建的預設版本與 container digest，隨 Action 一起更新。
       # 不另設 version，避免掃描器版本超出 Action 內建的支援清單。
       - name: Audit GitHub Actions
-        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
           advanced-security: false
           annotations: true
