@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["PyYAML==6.0.3"]
+# dependencies = ["PyYAML==6.0.4"]
 # ///
 """直接執行發佈 workflow 的 shell，以假的 gh／curl 驗證更新與取得端合約。"""
 import hashlib

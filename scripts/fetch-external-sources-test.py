@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["PyYAML==6.0.3"]
+# dependencies = ["PyYAML==6.0.4"]
 # ///
 """以假的 gh／curl 驅動 fetch-external-sources 的 fetch.sh。"""
 import hashlib
